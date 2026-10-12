@@ -1,13 +1,13 @@
 # Deviations from Submitted Documents
 
 **Project:** Task Manager Application
-**Documents covered:** SRS, SAD, Test Plan (STP), and the course Part-2 deliverables schedule
+**Baseline documents:** SRS, SAD v1.1 (09-10-2026), STP v1.0 (28-09-2026), and the course Part-2 deliverables schedule
 **Owner:** Syed (Scrum Master)
 
-This file records every place where what we build or do differs from what the submitted documents say, with the reason. The course asks us to document deviations and explain them at the final demo, so add an entry when the change happens, not at the end.
+The submitted documents are the baseline and are not edited after submission. Every place where what we build or do differs from them is recorded here, with the reason, so it can be explained at the final demo.
 
 **When to add an entry:** any time the product, the schedule, the test approach or the architecture differs from the SRS, SAD or STP.
-**How:** add the next ID (D-04, D-05, ...), keep each field to a sentence or two, and link the issue or PR where useful.
+**How:** add the next ID (D-06, D-07, ...), keep each field to a sentence or two, and link the issue or PR where useful.
 **Status values:** *Applied* (it has happened), *Proposed* (the team has not confirmed it yet), *Open* (still to be decided).
 
 ---
@@ -37,34 +37,63 @@ This file records every place where what we build or do differs from what the su
 - **Document:** STP, Test Environment / Test Data
 - **Planned:** seed data with sample projects and tasks in each status.
 - **What we are doing instead:** seed data contains test accounts and sample tasks only.
-- **Why:** no requirement defines a Projects entity, so none is being built.
+- **Why:** no requirement defines a Projects entity (also listed as a SAD open issue, see section 2), so none is being built.
 - **Impact:** none on any of the 34 requirements.
 - **Status:** Proposed (to be confirmed by the team)
 
-<!-- Copy the block above for each new deviation. -->
+### D-04 - Monitoring
+- **Logged:** 2026-10-11
+- **Document:** SAD, section 4.4 (Logging and monitoring) and section 3.6
+- **Planned:** monitor response time, error rate, authentication failures and lockouts, notification failures, job failures, and database/storage health.
+- **What we are doing instead:** application logging plus the audit and activity records. No separate monitoring tooling is set up.
+- **Why:** there is no production deployment in this course build, and the time goes to the 34 requirements.
+- **Impact:** response-time and concurrency targets (TM-NF-001, TM-NF-003) are verified by test runs rather than live monitoring.
+- **Status:** Proposed (to be confirmed by the team)
+
+### D-05 - Attachment malware scanning
+- **Logged:** 2026-10-11
+- **Document:** SAD, sections 3.9 and 4.1 (StorageModule); SRS TM-F-022 ("scanned before storage")
+- **Planned:** attachments are validated and scanned for malware before storage.
+- **What we are doing instead:** a scanner interface with a stub behind it: file-type and size checks plus detection of the EICAR test file. No full antivirus engine is integrated.
+- **Why:** the SAD leaves the scanning mechanism open, and a real scanner needs infrastructure outside this course build.
+- **Impact:** weaker protection than a real scanner. The interface lets a real scanner replace the stub later.
+- **Status:** Proposed (to be confirmed by the team; remove this entry if a real scanner is used)
+
+<!-- Copy a block above for each new deviation. -->
 
 ---
 
-## 2. Decisions on items the SAD left open
+## 2. Decisions on the SAD open issues (SAD section 4.6)
 
-These are not deviations, because the SAD did not fix them. They are recorded here so the choices and reasons are easy to explain at the demo.
+These are not deviations by themselves, because the SAD left them open. Each row follows the SAD's own list so every open issue has a recorded answer.
 
-| Open item | Decision | Status |
+| SAD open issue | Decision | Status |
 |---|---|---|
-| Database | PostgreSQL 16, run in Docker for development and testing | Applied |
-| Test email server | MailHog, as named in the STP | Applied |
-| Background jobs (reminders, queued e-mail) | A scheduled Django management command; no Celery | Proposed |
-| Attachment scanning | A scanner stub behind an interface (extension and size checks, EICAR test file); no real antivirus integration | Proposed |
-| REST/JSON endpoints | Not built; server-rendered Django views only | Proposed |
-| Who can recover a soft-deleted task | The task owner | Proposed |
-| Who can assign tasks | The Project Manager role, to any user | Proposed |
-| Who can change collaborator permissions | The task owner (per TM-F-030 and TM-F-032) | Proposed |
-| Task status values | To be agreed by Dev A and Dev B in the schema session and recorded in `docs/schema.md` | Open |
-| Password complexity policy (TM-F-001) | The SRS refers to a policy but does not define it; Dev A to define it, and the seed password must comply | Open |
+| Production relational database | PostgreSQL 16, run in Docker for development and testing | Applied |
+| Background-job implementation | A scheduled Django management command; no Celery | Proposed |
+| File-storage backend and malware scanning | Local file storage; scanner stub (see D-05) | Proposed |
+| Supported browser matrix | To be defined before UI testing | Open |
+| Whether optional REST endpoints are enabled | Not enabled; server-rendered Django views only | Proposed |
+| Monitoring, backup and at-rest encryption | Not implemented in the course build; deployment-level controls (see D-04) | Proposed |
+| Rate limiting for login and file upload | Not implemented in application code (a reverse-proxy concern). Account lockout (TM-F-003) and the 10 MB limit (TM-F-022) still apply | Proposed |
+| Whether "projects" need their own entity | No Projects entity is built (see D-03) | Proposed |
+| Who may recover a soft-deleted task; whether a Project Manager may assign to any user | The task owner recovers; a Project Manager may assign to any user | Proposed |
+| Who may change collaborator permissions | The task owner (per TM-F-030 and TM-F-032) | Proposed |
 
 ---
 
-## 3. Scope cut or deferred
+## 3. Other decisions and gaps not covered by the documents
+
+| Item | Decision | Status |
+|---|---|---|
+| Test e-mail server | MailHog, as named in the STP | Applied |
+| Task status values | To be agreed by Dev A and Dev B in the schema session and recorded in `docs/schema.md`. No document defines the list | Open |
+| Password complexity policy (TM-F-001) | The SRS refers to a policy but does not define it; Dev A to define it, and the seed password must comply | Open |
+| How TM-SR-001 (TLS 1.2+) is verified | HTTPS is required in production and HTTP is allowed locally; decide where TLS is demonstrated | Open |
+
+---
+
+## 4. Scope cut or deferred
 
 None so far.
 
