@@ -1,0 +1,6 @@
+line-length = 100
+target-version = "py312"
+
+[lint]
+# Default checks (pyflakes and basic style errors).
+select = ["E", "F"]
