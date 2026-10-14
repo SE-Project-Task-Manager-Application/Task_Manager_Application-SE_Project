@@ -1,0 +1,11 @@
+Add AuditService and NotificationService stubs (S-05)
+
+AuditService.record(actor, action, target, timestamp) writes append-only rows
+to the new AuditRecord model (adminpanel); timestamps are UTC, action names are
+validated, and secret-looking detail keys are redacted. NotificationService
+provides enqueue/send/deliver_pending as a small in-memory stub that e-mails
+through Django's mail layer and never lets a delivery failure escape.
+Both are callable from a view and from a test.
+
+Refs #5
+
