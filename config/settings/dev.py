@@ -1,6 +1,6 @@
 import os
 
-from .base import *
+from .base import *  # noqa: F403
 
 SECRET_KEY = os.environ["DJANGO_SECRET_KEY"]
 
