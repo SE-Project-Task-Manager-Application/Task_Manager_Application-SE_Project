@@ -79,7 +79,8 @@ h1 { font-size: 1.75rem; margin: 0 0 1rem; }
 
 /* Forms and validation */
 .form { max-width: 40rem; }
-.form > div, .form fieldset { margin: 0 0 1.25rem; padding: 0; border: 0; }
+.form .field { margin: 0 0 1.25rem; }
+.form fieldset { margin: 0; padding: 0; border: 0; }
 .form label, .form legend { display: block; font-weight: 600; margin-bottom: 0.25rem; padding: 0; }
 .form .helptext { margin: 0 0 0.25rem; color: var(--muted); font-size: 0.9375rem; }
 .form input[type="text"], .form input[type="email"], .form input[type="password"],
@@ -88,8 +89,9 @@ h1 { font-size: 1.75rem; margin: 0 0 1rem; }
   color: var(--text); background: var(--bg); border: 2px solid var(--border); border-radius: 4px;
 }
 .form [aria-invalid="true"] { border-color: var(--error); }
-.form ul:not(.errorlist) { list-style: none; margin: 0; padding: 0; }
-.form ul:not(.errorlist) label { display: flex; align-items: center; gap: 0.5rem; min-height: 44px; font-weight: 400; }
+.form fieldset label { display: flex; align-items: center; gap: 0.5rem; min-height: 44px; font-weight: 400; }
+.field--required > label::after,
+.field--required > fieldset > legend::after { content: " (required)"; font-weight: 400; color: var(--muted); }
 .form input[type="checkbox"], .form input[type="radio"] { width: 1.25rem; height: 1.25rem; }
 .errorlist { margin: 0.25rem 0; padding: 0; list-style: none; color: var(--error); font-weight: 600; }
 .error-summary { margin: 0 0 1.25rem; padding: 0.75rem 1rem; border: 2px solid var(--error); color: var(--error); }

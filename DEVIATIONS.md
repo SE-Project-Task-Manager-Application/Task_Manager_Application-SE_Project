@@ -59,6 +59,24 @@ The submitted documents are the baseline and are not edited after submission. Ev
 - **Impact:** weaker protection than a real scanner. The interface lets a real scanner replace the stub later.
 - **Status:** Proposed (to be confirmed by the team; remove this entry if a real scanner is used)
 
+### D-06 - Task assignees stored as assignment records
+- **Logged:** 2026-10-15
+- **Document:** SAD, section 4.1 (TaskModule data: "Task (assignee, deleted_at)") and the data-model line in S-04
+- **Planned:** a single `assignee` on the Task.
+- **What we are doing instead:** a Task has one `owner` and any number of assignees, stored as TaskAssignment rows (task, user, assigned_by, assigned_at), as agreed in `docs/schema.md`.
+- **Why:** the team agreed that a task may have several assignees and that who assigned, and when, must be recorded.
+- **Impact:** assignment and reassignment (TC-Task-01/02) work on assignment records. Anything that read "the assignee" reads the task's assignment list instead.
+- **Status:** Applied
+
+### D-07 - Notification stub is not stored in the database
+- **Logged:** 2026-10-15
+- **Document:** SAD, section 4.1 (NotifModule data: "Notification / delivery status") and section 4.3
+- **Planned:** notifications and their delivery status are persisted.
+- **What we are doing instead:** S-05 provides NotificationService as a thin stub: pending events are kept in memory and sent as e-mail (MailHog in development). A persisted Notification record, retry behaviour and due-date reminders come with the notification stories.
+- **Why:** Sprint 0 only needs the interface to exist so feature stories can call it.
+- **Impact:** queued events are lost if the server restarts, and there is no retry yet, so STP 5.2 notification-failure retry testing waits for the later story.
+- **Status:** Proposed (to be confirmed by the team)
+
 <!-- Copy a block above for each new deviation. -->
 
 ---
