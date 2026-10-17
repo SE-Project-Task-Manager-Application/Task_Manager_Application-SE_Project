@@ -51,7 +51,7 @@ These are not deviations, because the SAD did not fix them. They are recorded he
 
 | Open item | Decision | Status |
 |---|---|---|
-| Database | PostgreSQL 16, run in Docker for development and testing | Applied |
+| Database | S-01 uses SQLite. PostgreSQL 16 is defined in Docker Compose; connecting Django to PostgreSQL is deferred to S-02. | Applied |
 | Test email server | MailHog, as named in the STP | Applied |
 | Background jobs (reminders, queued e-mail) | A scheduled Django management command; no Celery | Proposed |
 | Attachment scanning | A scanner stub behind an interface (extension and size checks, EICAR test file); no real antivirus integration | Proposed |
@@ -59,7 +59,7 @@ These are not deviations, because the SAD did not fix them. They are recorded he
 | Who can recover a soft-deleted task | The task owner | Proposed |
 | Who can assign tasks | The Project Manager role, to any user | Proposed |
 | Who can change collaborator permissions | The task owner (per TM-F-030 and TM-F-032) | Proposed |
-| Task status values | To be agreed by Dev A and Dev B in the schema session and recorded in `docs/schema.md` | Open |
+| Task status values | `todo`, `in_progress`, and `done`, as agreed by Dev A and Dev B and recorded in `docs/schema.md` | Applied |
 | Password complexity policy (TM-F-001) | The SRS refers to a policy but does not define it; Dev A to define it, and the seed password must comply | Open |
 
 ---
