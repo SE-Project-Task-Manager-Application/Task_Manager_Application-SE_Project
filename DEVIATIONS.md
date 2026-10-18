@@ -1,13 +1,13 @@
 # Deviations from Submitted Documents
 
-**Project:** Task Manager Application
-**Baseline documents:** SRS, SAD v1.1 (09-10-2026), STP v1.0 (28-09-2026), and the course Part-2 deliverables schedule
+**Project:** Task Manager Application  
+**Baseline documents:** SRS, SAD v1.1 (09-10-2026), STP v1.0 (28-09-2026), and the course Part-2 deliverables schedule  
 **Owner:** Syed (Scrum Master)
 
 The submitted documents are the baseline and are not edited after submission. Every place where what we build or do differs from them is recorded here, with the reason, so it can be explained at the final demo.
 
-**When to add an entry:** any time the product, the schedule, the test approach or the architecture differs from the SRS, SAD or STP.
-**How:** add the next ID (D-06, D-07, ...), keep each field to a sentence or two, and link the issue or PR where useful.
+**When to add an entry:** any time the product, the schedule, the test approach or the architecture differs from the SRS, SAD or STP.  
+**How:** add the next ID (D-06, D-07, ...), keep each field to a sentence or two, and link the issue or PR where useful.  
 **Status values:** *Applied* (it has happened), *Proposed* (the team has not confirmed it yet), *Open* (still to be decided).
 
 ---
@@ -87,16 +87,20 @@ These are not deviations by themselves, because the SAD left them open. Each row
 
 | SAD open issue | Decision | Status |
 |---|---|---|
-| Production relational database | PostgreSQL 16, run in Docker for development and testing | Applied |
-| Background-job implementation | A scheduled Django management command; no Celery | Proposed |
-| File-storage backend and malware scanning | Local file storage; scanner stub (see D-05) | Proposed |
+| Database | S-01 uses SQLite. PostgreSQL 16 is defined in Docker Compose; connecting Django to PostgreSQL is deferred to S-02. | Applied |
+| Test email server | MailHog, as named in the STP | Applied |
+| Background jobs (reminders, queued e-mail) | A scheduled Django management command; no Celery | Proposed |
+| Attachment scanning | A scanner stub behind an interface (extension and size checks, EICAR test file); no real antivirus integration | Proposed |
+| REST/JSON endpoints | Not built; server-rendered Django views only | Proposed |
+| Who can recover a soft-deleted task | The task owner | Proposed |
+| Who can assign tasks | The Project Manager role, to any user | Proposed |
+| Who can change collaborator permissions | The task owner (per TM-F-030 and TM-F-032) | Proposed |
+| Task status values | `todo`, `in_progress`, and `done`, as agreed by Dev A and Dev B and recorded in `docs/schema.md` | Applied |
+| Password complexity policy (TM-F-001) | The SRS refers to a policy but does not define it; Dev A to define it, and the seed password must comply | Open |
 | Supported browser matrix | To be defined before UI testing | Open |
-| Whether optional REST endpoints are enabled | Not enabled; server-rendered Django views only | Proposed |
 | Monitoring, backup and at-rest encryption | Not implemented in the course build; deployment-level controls (see D-04) | Proposed |
 | Rate limiting for login and file upload | Not implemented in application code (a reverse-proxy concern). Account lockout (TM-F-003) and the 10 MB limit (TM-F-022) still apply | Proposed |
 | Whether "projects" need their own entity | No Projects entity is built (see D-03) | Proposed |
-| Who may recover a soft-deleted task; whether a Project Manager may assign to any user | The task owner recovers; a Project Manager may assign to any user | Proposed |
-| Who may change collaborator permissions | The task owner (per TM-F-030 and TM-F-032) | Proposed |
 
 ---
 
@@ -104,9 +108,6 @@ These are not deviations by themselves, because the SAD left them open. Each row
 
 | Item | Decision | Status |
 |---|---|---|
-| Test e-mail server | MailHog, as named in the STP | Applied |
-| Task status values | To be agreed by Dev A and Dev B in the schema session and recorded in `docs/schema.md`. No document defines the list | Open |
-| Password complexity policy (TM-F-001) | The SRS refers to a policy but does not define it; Dev A to define it, and the seed password must comply | Open |
 | How TM-SR-001 (TLS 1.2+) is verified | HTTPS is required in production and HTTP is allowed locally; decide where TLS is demonstrated | Open |
 
 ---
