@@ -31,7 +31,7 @@ Open http://127.0.0.1:8000/ in your browser.
 The development settings are loaded by default.
 ## Database and email services
 
-For S-01, Django uses SQLite (`db.sqlite3`). Docker Compose defines PostgreSQL 16, which Django will be configured to use in S-02.
+The application uses PostgreSQL 16. Django reads DB_NAME, DB_USER, DB_PASSWORD, DB_HOST, and DB_PORT from the environment. For local development, these values are loaded from .env.
 
 Copy the example environment file, then start PostgreSQL and MailHog:
 
