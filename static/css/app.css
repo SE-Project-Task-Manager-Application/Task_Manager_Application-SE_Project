@@ -1,0 +1,126 @@
+/* Task Manager base styles (S-03). Targets WCAG 2.1 AA:
+   text/background pairs are >= 4.5:1, focus is always visible, targets are >= 44px. */
+
+:root {
+  --text: #1a1a1a;
+  --muted: #4a4a4a;       /* 8.9:1 on white */
+  --bg: #ffffff;
+  --surface: #f4f6f8;
+  --border: #6b7280;      /* 4.8:1 on white (non-text contrast needs 3:1) */
+  --brand: #14213d;       /* header background */
+  --brand-text: #ffffff;  /* 16.0:1 on --brand */
+  --action: #0b5cad;      /* 6.7:1 on white; white text on it is also 6.7:1 */
+  --action-text: #ffffff;
+  --error: #b00020;       /* 7.3:1 on white */
+  --success: #146c2e;     /* 6.5:1 on white */
+  --focus-on-light: #0b5cad;
+  --focus-on-dark: #ffbf47;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  font-size: 1rem;
+  line-height: 1.5;
+  color: var(--text);
+  background: var(--bg);
+}
+
+.container { width: 100%; max-width: 64rem; margin: 0 auto; padding: 0 1rem; }
+
+a { color: var(--action); }
+
+/* Visible focus for every interactive element */
+a:focus-visible, button:focus-visible, input:focus-visible,
+select:focus-visible, textarea:focus-visible, summary:focus-visible {
+  outline: 3px solid var(--focus-on-light);
+  outline-offset: 2px;
+}
+.site-header a:focus-visible, .site-header button:focus-visible {
+  outline-color: var(--focus-on-dark);
+}
+main:focus { outline: none; }
+
+.visually-hidden {
+  position: absolute; width: 1px; height: 1px; overflow: hidden;
+  clip: rect(0 0 0 0); white-space: nowrap;
+}
+
+.skip-link {
+  position: absolute; left: 0.5rem; top: -4rem; z-index: 10;
+  padding: 0.75rem 1rem; background: var(--action); color: var(--action-text);
+}
+.skip-link:focus { top: 0.5rem; }
+
+/* Header and navigation */
+.site-header { background: var(--brand); color: var(--brand-text); }
+.header-inner { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 1.5rem; }
+.brand { color: var(--brand-text); font-weight: 700; text-decoration: none; padding: 0.75rem 0; }
+.nav-list { display: flex; flex-wrap: wrap; gap: 0.25rem; margin: 0; padding: 0; list-style: none; }
+.nav-link {
+  display: inline-flex; align-items: center; min-height: 44px; padding: 0 0.75rem;
+  color: var(--brand-text); background: none; border: 0; font: inherit; cursor: pointer;
+  text-decoration: underline;
+}
+.nav-link[aria-current="page"] { font-weight: 700; text-decoration-thickness: 3px; }
+.nav-form { margin: 0; }
+
+main { padding-top: 1.5rem; padding-bottom: 2rem; min-height: 60vh; }
+h1 { font-size: 1.75rem; margin: 0 0 1rem; }
+
+.site-footer { background: var(--surface); color: var(--muted); padding: 1rem 0; font-size: 0.875rem; }
+
+/* Messages */
+.message { margin: 0 0 1rem; padding: 0.75rem 1rem; border-left: 6px solid var(--border); background: var(--surface); }
+.message--success { border-color: var(--success); }
+.message--error { border-color: var(--error); }
+
+/* Forms and validation */
+.form { max-width: 40rem; }
+.form .field { margin: 0 0 1.25rem; }
+.form fieldset { margin: 0; padding: 0; border: 0; }
+.form label, .form legend { display: block; font-weight: 600; margin-bottom: 0.25rem; padding: 0; }
+.form .helptext { margin: 0 0 0.25rem; color: var(--muted); font-size: 0.9375rem; }
+.form input[type="text"], .form input[type="email"], .form input[type="password"],
+.form input[type="date"], .form input[type="datetime-local"], .form select, .form textarea {
+  width: 100%; min-height: 44px; padding: 0.5rem 0.75rem; font: inherit;
+  color: var(--text); background: var(--bg); border: 2px solid var(--border); border-radius: 4px;
+}
+.form [aria-invalid="true"] { border-color: var(--error); }
+.form fieldset label { display: flex; align-items: center; gap: 0.5rem; min-height: 44px; font-weight: 400; }
+.field--required > label::after,
+.field--required > fieldset > legend::after { content: " (required)"; font-weight: 400; color: var(--muted); }
+.form input[type="checkbox"], .form input[type="radio"] { width: 1.25rem; height: 1.25rem; }
+.errorlist { margin: 0.25rem 0; padding: 0; list-style: none; color: var(--error); font-weight: 600; }
+.error-summary { margin: 0 0 1.25rem; padding: 0.75rem 1rem; border: 2px solid var(--error); color: var(--error); }
+.error-summary__title { margin: 0; font-weight: 700; }
+
+.button {
+  min-height: 44px; padding: 0.5rem 1.25rem; font: inherit; font-weight: 600; cursor: pointer;
+  color: var(--action-text); background: var(--action); border: 2px solid var(--action); border-radius: 4px;
+}
+.button:hover { background: #084b8f; border-color: #084b8f; }
+.button-link {
+  display: inline-flex; align-items: center; min-height: 44px; padding: 0 1.25rem;
+  color: var(--action-text); background: var(--action); border-radius: 4px; text-decoration: none; font-weight: 600;
+}
+
+/* Tables scroll sideways on narrow screens instead of breaking the page */
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; }
+th, td { text-align: left; padding: 0.5rem 0.75rem; border-bottom: 1px solid var(--border); vertical-align: top; }
+th { background: var(--surface); }
+caption { text-align: left; font-weight: 600; padding: 0.5rem 0; }
+
+.chip { display: inline-block; padding: 0 0.5rem; margin-right: 0.25rem; border: 1px solid var(--border); border-radius: 1rem; font-size: 0.875rem; }
+
+@media (max-width: 40rem) {
+  h1 { font-size: 1.5rem; }
+  .header-inner { flex-direction: column; align-items: flex-start; }
+}
+
+@media (forced-colors: active) {
+  .button, .button-link { border: 2px solid ButtonText; }
+}
