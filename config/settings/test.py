@@ -1,6 +1,9 @@
 """Settings used by the automated tests (pytest sets this in pytest.ini).
 
-Needs no environment variables, so `pytest` runs on a clean checkout and in CI.
+Uses the PostgreSQL settings inherited from base.py (DB_NAME, DB_USER, DB_PASSWORD,
+DB_HOST, DB_PORT), the same database as production. In CI the workflow provides a
+postgres:16 service. Locally, run `docker compose up -d db` and copy `.env.example`
+to `.env` first. Only the secret key and the fast password hasher are test-specific.
 """
 
 from .base import *  # noqa: F403
