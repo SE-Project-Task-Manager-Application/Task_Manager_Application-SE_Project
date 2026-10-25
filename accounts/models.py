@@ -8,7 +8,7 @@ class UserManager(BaseUserManager):
     def create_user(self, email, password=None, **extra_fields):
         if not email:
             raise ValueError("An email address is required.")
-        email = self.normalize_email(email)
+        email = self.normalize_email(email).lower()  # whole address, so A@x.com == a@x.com
         user = self.model(email=email, **extra_fields)
         user.set_password(password)
         user.save(using=self._db)

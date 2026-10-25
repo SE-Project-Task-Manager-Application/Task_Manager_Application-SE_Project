@@ -133,20 +133,43 @@ def test_project_manager_can_assign_while_creating(client, login, make_user):
     assert AuditRecord.objects.filter(action="task.assignee_added").count() == 1
 
 
-def test_assignee_is_notified_after_commit(make_user, django_capture_on_commit_callbacks):
+def test_assignee_is_emailed_after_commit(make_user, django_capture_on_commit_callbacks):
     pm, worker = make_user("project_manager"), make_user()
     with django_capture_on_commit_callbacks(execute=True):
         TaskService.create(pm, "Delegated", assignees=[worker])
-    events = NotificationService.pending()
-    assert [(e.kind, e.recipient) for e in events] == [("task.assigned", worker)]
-    NotificationService.deliver_pending()
     assert [m.to for m in mail.outbox] == [[worker.email]]
+    assert mail.outbox[0].subject == "You have been assigned a task"
+    assert "Delegated" in mail.outbox[0].body
 
 
-def test_no_notification_if_nothing_commits(make_user):
+def test_no_email_if_the_transaction_never_commits(make_user):
     pm, worker = make_user("project_manager"), make_user()
     TaskService.create(pm, "Delegated", assignees=[worker])  # on_commit callbacks not run
-    assert NotificationService.pending() == []
+    assert mail.outbox == []
+
+
+def test_assigning_to_yourself_sends_no_email(make_user, django_capture_on_commit_callbacks):
+    pm = make_user("project_manager")
+    with django_capture_on_commit_callbacks(execute=True):
+        TaskService.create(pm, "Mine", assignees=[pm])
+    assert mail.outbox == []
+
+
+def test_mail_failure_does_not_break_assignment(
+    make_user, monkeypatch, django_capture_on_commit_callbacks
+):
+    def boom(*args, **kwargs):
+        raise TimeoutError
+
+    monkeypatch.setattr("notif.services.send_mail", boom)
+    pm, worker = make_user("project_manager"), make_user()
+    with django_capture_on_commit_callbacks(execute=True):
+        task = TaskService.create(pm, "Delegated", assignees=[worker])
+    assert TaskAssignment.objects.filter(task=task, user=worker).exists()
+
+
+def test_mail_connections_time_out(settings):
+    assert settings.EMAIL_TIMEOUT and settings.EMAIL_TIMEOUT <= 10
 
 
 def test_member_does_not_get_an_assignee_field(client, login):
