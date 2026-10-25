@@ -4,10 +4,16 @@ SAD 4.3: NotificationService.enqueue/send(event) accepts a domain event and deli
 it. This stub keeps pending events in memory and sends them as e-mail through Django's
 mail layer (MailHog in development). It is deliberately small:
 
-- enqueue(event)        queue an event for later delivery
 - send(event)           deliver one event now; returns True/False and never raises, so a
-                        mail-server problem cannot break the request that triggered it
-- deliver_pending()     send everything queued (for a later scheduled command)
+                        mail-server problem cannot break the request that triggered it.
+                        The connection times out after EMAIL_TIMEOUT seconds. This is
+                        what TaskService calls (after commit) when a task is assigned.
+- enqueue(event)        queue an event for later delivery
+- deliver_pending()     send everything queued. Nothing calls enqueue/deliver_pending
+                        at runtime yet: they are the hook for a later background job.
+
+Verify delivery by watching MailHog (http://localhost:8025) or, in tests, the
+django.core.mail.outbox list.
 
 Not done yet (later notification stories): a persisted Notification table that survives
 restarts, retry/back-off, and due-date reminders. See DEVIATIONS.md.

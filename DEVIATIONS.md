@@ -71,10 +71,10 @@ The submitted documents are the baseline and are not edited after submission. Ev
 ### D-07 - Notification stub is not stored in the database
 - **Logged:** 2026-10-15
 - **Document:** SAD, section 4.1 (NotifModule data: "Notification / delivery status") and section 4.3
-- **Planned:** notifications and their delivery status are persisted.
-- **What we are doing instead:** S-05 provides NotificationService as a thin stub: pending events are kept in memory and sent as e-mail (MailHog in development). A persisted Notification record, retry behaviour and due-date reminders come with the notification stories.
-- **Why:** Sprint 0 only needs the interface to exist so feature stories can call it.
-- **Impact:** queued events are lost if the server restarts, and there is no retry yet, so STP 5.2 notification-failure retry testing waits for the later story.
+- **Planned:** notifications are delivered asynchronously and their delivery status is persisted.
+- **What we are doing instead:** S-05 provides NotificationService as a thin stub. When a task is assigned, TaskService sends the e-mail directly after the database transaction commits (MailHog in development); `send()` never raises and the mail connection times out after `EMAIL_TIMEOUT` (5 seconds). `enqueue()` and `deliver_pending()` exist for a later background job but nothing calls them yet. No Notification record, retry, or due-date reminder exists yet; those come with the notification stories.
+- **Why:** Sprint 0 only needs the interface to exist and TC-Task-01's "assignee is notified" to be checkable.
+- **Impact:** a request that assigns a task waits for the mail server for up to 5 seconds if it is unreachable, and a failed mail is logged but not retried, so the STP 5.2 retry test waits for the later story. TC-Task-01 is verified in MailHog (http://localhost:8025) or `django.core.mail.outbox`.
 - **Status:** Proposed (to be confirmed by the team)
 
 <!-- Copy a block above for each new deviation. -->

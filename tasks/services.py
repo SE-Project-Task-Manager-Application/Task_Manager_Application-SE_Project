@@ -4,7 +4,7 @@ Only create() and assign() exist so far; update/delete/complete are added by the
 stories for TM-F-011 to TM-F-013. Rules enforced here, not in the UI:
 - assignment is restricted to the Project Manager role (SAD 4.3);
 - a task and its audit record are written in one transaction (SAD 4.4);
-- assignment notifies the assignee, but only once the transaction has committed.
+- assignment e-mails the assignee, but only once the transaction has committed.
 """
 
 from django.core.exceptions import PermissionDenied, ValidationError
@@ -96,5 +96,7 @@ class TaskService:
                 body=f"You were assigned the task '{task.title}'.",
                 context={"task_id": task.pk, "assigned_by_id": actor.pk},
             )
-            transaction.on_commit(lambda: NotificationService.enqueue(event))
+            # Sent right after the transaction commits (never for a rolled-back change).
+            # send() cannot raise and the mail connection times out (EMAIL_TIMEOUT).
+            transaction.on_commit(lambda: NotificationService.send(event))
         return assignment

@@ -145,3 +145,5 @@ EMAIL_HOST = "localhost"
 EMAIL_PORT = 1025
 EMAIL_USE_TLS = False
 EMAIL_USE_SSL = False
+# Give up on an unreachable mail server after 5 seconds instead of hanging the request.
+EMAIL_TIMEOUT = 5
