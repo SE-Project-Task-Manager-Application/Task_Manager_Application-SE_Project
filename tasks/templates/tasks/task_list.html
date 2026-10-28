@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Tasks{% endblock %}
+{% block content %}
+  <h1>Tasks</h1>
+  <p><a class="button-link" href="{% url 'tasks:create' %}">New task</a></p>
+
+  {% if tasks %}
+    <div class="table-wrap">
+      <table>
+        <caption class="visually-hidden">Your tasks</caption>
+        <thead>
+          <tr>
+            <th scope="col">Title</th>
+            <th scope="col">Status</th>
+            <th scope="col">Priority</th>
+            <th scope="col">Due</th>
+            <th scope="col">Assigned to</th>
+            <th scope="col">Labels</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for task in tasks %}
+            <tr>
+              <th scope="row">{{ task.title }}</th>
+              <td>{{ task.get_status_display }}</td>
+              <td>{{ task.get_priority_display }}</td>
+              <td>{% if task.due_date %}{{ task.due_date|date:"Y-m-d H:i" }}{% else %}&ndash;{% endif %}</td>
+              <td>{% for person in task.assignees.all %}{{ person.email }}{% if not forloop.last %}, {% endif %}{% empty %}&ndash;{% endfor %}</td>
+              <td>{% for label in task.labels.all %}<span class="chip">{{ label.name }}</span>{% empty %}&ndash;{% endfor %}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <p>You have no tasks yet.</p>
+  {% endif %}
+{% endblock %}

@@ -1,0 +1,23 @@
+{% comment %}
+  Reusable form: error summary, labelled fields, submit button.
+  Usage: include "components/form.html" with form=form submit_label="Save"
+{% endcomment %}
+<form method="post" novalidate class="form">
+  {% csrf_token %}
+  {% if form.non_field_errors %}
+    <div class="error-summary" role="alert">
+      <p class="error-summary__title">Please fix the following:</p>
+      {{ form.non_field_errors }}
+    </div>
+  {% elif form.errors %}
+    <div class="error-summary" role="alert">
+      <p class="error-summary__title">Please fix the highlighted fields.</p>
+    </div>
+  {% endif %}
+  {% for field in form %}
+    <div class="field{% if field.field.required %} field--required{% endif %}">
+      {{ field.as_field_group }}
+    </div>
+  {% endfor %}
+  <button type="submit" class="button">{{ submit_label|default:"Submit" }}</button>
+</form>
