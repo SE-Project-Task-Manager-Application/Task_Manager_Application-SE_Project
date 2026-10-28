@@ -1,6 +1,6 @@
 from django.shortcuts import render
 
-from notif.services import NotificationService
+from notif.services import NotificationEvent, NotificationService
 
 from .forms import RegistrationForm
 
@@ -12,14 +12,16 @@ def register(request):
         if form.is_valid():
             user = form.save()
 
-            NotificationService.enqueue(
-                recipient=user.email,
+            event = NotificationEvent(
+                kind="account.created",
+                recipient=user,
                 subject="Task Manager account confirmation",
-                message=(
+                body=(
                     f"Your Task Manager account has been created "
                     f"for {user.email}."
                 ),
             )
+            NotificationService.send(event)
 
             return render(
                 request,
@@ -30,4 +32,3 @@ def register(request):
         form = RegistrationForm()
 
     return render(request, "accounts/register.html", {"form": form})
-# Create your views here.

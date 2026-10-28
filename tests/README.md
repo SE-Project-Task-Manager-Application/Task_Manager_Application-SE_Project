@@ -20,6 +20,8 @@ its own file, so a failing test points straight at its TC ID.
 | `tests/dash/` | TC-Dash-01, TC-Dash-02 |
 | `tests/admin/` | TC-Admin-01 to TC-Admin-04 |
 | `tests/sec/` | TC-Sec-01 to TC-Sec-05 |
+| `tests/accounts/` | User model rules (no TC ID; the TC-Auth tests are added by the auth stories) |
+| `tests/foundation/` | No TC ID: ORM, service and layout tests for the setup stories (S-03 to S-05) |
 
 Other groups (Org, Perf, Ops, Retention, Scale, UX) get their own folder when
 their first test is written.
@@ -29,4 +31,5 @@ their first test is written.
 File: `test_tc_<group>_<number>.py`, for example `tests/auth/test_tc_auth_01.py`.
 Test functions inside it start with `test_`.
 
-`tests/test_smoke.py` only proves that CI runs. Delete it once real tests exist.
+Shared fixtures (for example `make_user`) live in `tests/conftest.py`. Tests use
+`config.settings.test`, so no environment variables are needed.
