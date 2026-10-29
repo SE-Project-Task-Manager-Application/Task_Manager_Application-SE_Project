@@ -3,3 +3,4 @@ Django==6.1.2
 sqlparse==0.6.0
 psycopg[binary]>=3.2,<4
 python-dotenv>=1.0,<2
+argon2-cffi>=23.1,<26
