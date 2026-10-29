@@ -154,6 +154,8 @@ SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SAMESITE = "Lax"
 SESSION_COOKIE_SECURE = False
 CSRF_COOKIE_SECURE = False
+SESSION_COOKIE_AGE = 60 * 60 * 24  # 24 hours
+SESSION_SAVE_EVERY_REQUEST = True#
 
 # Email
 # https://docs.djangoproject.com/en/6.1/topics/email/#topic-email-configuration
