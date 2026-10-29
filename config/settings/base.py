@@ -148,7 +148,14 @@ STATICFILES_DIRS = [BASE_DIR / 'static']
 # Authentication redirects (the login view itself is added by the accounts stories)
 LOGIN_URL = '/accounts/login/'
 LOGIN_REDIRECT_URL = '/tasks/'
-
+LOGOUT_REDIRECT_URL = "/"
+SESSION_ENGINE = "django.contrib.sessions.backends.db"
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = "Lax"
+SESSION_COOKIE_SECURE = False
+CSRF_COOKIE_SECURE = False
+SESSION_COOKIE_AGE = 60 * 60 * 24  # 24 hours
+SESSION_SAVE_EVERY_REQUEST = True#
 
 # Email
 # https://docs.djangoproject.com/en/6.1/topics/email/#topic-email-configuration
