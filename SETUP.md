@@ -7,6 +7,7 @@
 2. Copy `.env.example` to `.env`:
    - Windows: `copy .env.example .env`
    - Mac/Linux: `cp .env.example .env`
+   - Then set your own Django secret key: run `python -c "import secrets; print(secrets.token_urlsafe(50))"` and replace the `DJANGO_SECRET_KEY` value in your `.env` with the result. `.env` is private and ignored by Git; never commit it or share your key.
 3. Run `docker compose up -d`.
 4. MailHog inbox: http://localhost:8025
 
