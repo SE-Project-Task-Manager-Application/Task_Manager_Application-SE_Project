@@ -77,6 +77,14 @@ The submitted documents are the baseline and are not edited after submission. Ev
 - **Impact:** a request that assigns a task waits for the mail server for up to 5 seconds if it is unreachable, and a failed mail is logged but not retried, so the STP 5.2 retry test waits for the later story. TC-Task-01 is verified in MailHog (http://localhost:8025) or `django.core.mail.outbox`.
 - **Status:** Proposed (to be confirmed by the team)
 
+### D-08 — Registration confirmation email is sent synchronously
+- **Logged:** 2026-10-29
+- **Document:** Issue #10 / ADR-003
+- **Planned:** Registration confirmation e-mail is queued so the request does not wait for the mail server.
+- **What we are doing instead:** Registration sends the confirmation e-mail directly after creating the account. If the mail server is unavailable, the account remains created, but the request may wait up to `EMAIL_TIMEOUT` (5 seconds). The existing in-memory queue has no background delivery runner, so using `enqueue()` alone would not deliver the e-mail.
+- **Why:** Keep the confirmation e-mail deliverable while a background delivery mechanism is not available.
+- **Impact:** Registration is best-effort: a mail failure is logged, the account stays active, and delivery is not retried.
+- **Status:** Proposed (to be confirmed by the team)
 <!-- Copy a block above for each new deviation. -->
 
 ---
