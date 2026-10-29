@@ -1,5 +1,6 @@
 from django.db import IntegrityError, transaction
-from django.shortcuts import render
+from django.shortcuts import redirect, render
+from django.views.decorators.http import require_GET
 
 from notif.services import NotificationEvent, NotificationService
 
@@ -31,12 +32,18 @@ def register(request):
                 )
                 NotificationService.send(event)
 
-                return render(
-                    request,
-                    "accounts/registration_success.html",
-                    {"email": user.email},
-                )
+                # Keep personal data out of the URL and render success through GET.
+                request.session["registration_email"] = user.email
+                return redirect("accounts:registration_success")
     else:
         form = RegistrationForm()
 
     return render(request, "accounts/register.html", {"form": form})
+
+
+@require_GET
+def registration_success(request):
+    email = request.session.get("registration_email")
+    if not email:
+        return redirect("accounts:register")
+    return render(request, "accounts/registration_success.html", {"email": email})
