@@ -30,3 +30,16 @@ class SeedTestDataTests(TestCase):
         with self.assertRaises(CommandError):
             call_command("seed_test_data")
         self.assertEqual(User.objects.count(), 0)
+
+
+class SeedLabelTests(TestCase):
+    def test_seed_creates_labels_once_and_archives_one(self):
+        from tasks.models import Label
+
+        call_command("seed_test_data")
+        call_command("seed_test_data")
+        self.assertEqual(Label.objects.count(), 4)
+        self.assertEqual(
+            list(Label.objects.filter(is_archived=True).values_list("name", flat=True)),
+            ["Legacy"],
+        )
