@@ -8,7 +8,7 @@ TEST_PASSWORD = "SEPROG123"
 
 def test_admin_can_view_users(client, make_user):
     admin = make_user(role="admin")
-    member = make_user(email="member@example.com")
+    make_user(email="member@example.com")
 
     client.force_login(admin)
     response = client.get(reverse("adminpanel:user_list"))
