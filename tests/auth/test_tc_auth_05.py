@@ -168,3 +168,51 @@ def test_own_avatar_is_served_and_needs_login(client, make_user):
     other = _login(client, make_user())
     assert other.pk != user.pk
     assert client.get(reverse("accounts:avatar")).status_code == 404
+
+
+def test_avatar_with_image_extension_but_other_content_is_rejected(client, make_user):
+    user = _login(client, make_user())
+    fake = SimpleUploadedFile("x.png", b"MZ\x90\x00not an image", content_type="image/png")
+    resp = client.post(reverse(PROFILE), {"save_profile": "1", "full_name": "A", "avatar": fake})
+    assert resp.status_code == 200
+    assert "not a valid" in resp.content.decode()
+    user.refresh_from_db()
+    assert not user.avatar
+
+
+def test_avatar_content_must_match_extension(client, make_user):
+    user = _login(client, make_user())
+    png_as_gif = SimpleUploadedFile("x.gif", b"\x89PNG\r\n\x1a\n", content_type="image/gif")
+    client.post(reverse(PROFILE), {"save_profile": "1", "full_name": "A", "avatar": png_as_gif})
+    user.refresh_from_db()
+    assert not user.avatar
+
+
+@pytest.mark.parametrize(
+    "name,data",
+    [("a.jpg", b"\xff\xd8\xff\xe0\x00\x10JFIF"), ("a.gif", b"GIF89a\x01\x00")],
+)
+def test_avatar_jpeg_and_gif_are_accepted(client, make_user, name, data):
+    user = _login(client, make_user())
+    f = SimpleUploadedFile(name, data, content_type="application/octet-stream")
+    client.post(reverse(PROFILE), {"save_profile": "1", "full_name": "A", "avatar": f})
+    user.refresh_from_db()
+    assert user.avatar.name.endswith(name.split(".")[1])
+
+
+def test_email_change_reports_failure_when_mail_cannot_be_sent(client, make_user):
+    user = _login(client, make_user(email="old@example.com"))
+    with mock.patch("accounts.views.NotificationService.send", return_value=False):
+        resp = client.post(reverse(PROFILE), {"new_email": "new@example.com"}, follow=True)
+    text = resp.content.decode()
+    assert "could not send the confirmation email" in text
+    assert "We sent a confirmation link" not in text
+    user.refresh_from_db()
+    assert user.email == "old@example.com"
+
+
+def test_email_change_success_message_only_when_sent(client, make_user):
+    _login(client, make_user(email="old@example.com"))
+    resp = client.post(reverse(PROFILE), {"new_email": "new@example.com"}, follow=True)
+    assert "We sent a confirmation link to new@example.com" in resp.content.decode()
+    assert len(mail.outbox) == 1

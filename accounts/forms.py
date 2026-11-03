@@ -115,6 +115,12 @@ class LockoutAuthenticationForm(AuthenticationForm):
 
         return self.cleaned_data
 AVATAR_TYPES = (".png", ".jpg", ".jpeg", ".gif")
+AVATAR_SIGNATURES = (  # first bytes of the file -> the extensions that may carry them
+    (b"\x89PNG\r\n\x1a\n", (".png",)),
+    (b"\xff\xd8\xff", (".jpg", ".jpeg")),
+    (b"GIF87a", (".gif",)),
+    (b"GIF89a", (".gif",)),
+)
 AVATAR_MAX_BYTES = 10 * 1024 * 1024  # 10 MB, same limit as attachments (SAD)
 
 
@@ -159,6 +165,14 @@ class ProfileForm(forms.ModelForm):
                 raise forms.ValidationError("Use a PNG, JPG or GIF image.")
             if avatar.size > AVATAR_MAX_BYTES:
                 raise forms.ValidationError("The image must be 10 MB or smaller.")
+            # The extension is only a label: check the file's first bytes too.
+            head = avatar.read(8)
+            avatar.seek(0)
+            extension = "." + avatar.name.lower().rsplit(".", 1)[-1]
+            if not any(
+                head.startswith(sig) and extension in exts for sig, exts in AVATAR_SIGNATURES
+            ):
+                raise forms.ValidationError("That file is not a valid PNG, JPG or GIF image.")
         return avatar
 
 

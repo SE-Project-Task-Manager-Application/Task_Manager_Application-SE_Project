@@ -93,7 +93,7 @@ def profile(request):
                     reverse("accounts:email_confirm", args=[token])
                 )
                 recipient = type("Recipient", (), {"email": new_email, "pk": request.user.pk})()
-                NotificationService.send(
+                sent = NotificationService.send(
                     NotificationEvent(
                         kind="account.email_change",
                         recipient=recipient,
@@ -105,11 +105,18 @@ def profile(request):
                         ),
                     )
                 )
-                messages.success(
-                    request,
-                    f"We sent a confirmation link to {new_email}. "
-                    "Your email will change after you open it.",
-                )
+                if sent:
+                    messages.success(
+                        request,
+                        f"We sent a confirmation link to {new_email}. "
+                        "Your email will change after you open it.",
+                    )
+                else:
+                    messages.error(
+                        request,
+                        "We could not send the confirmation email. "
+                        "Your email was not changed. Please try again later.",
+                    )
                 return redirect("accounts:profile")
 
     return render(
