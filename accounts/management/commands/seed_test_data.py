@@ -1,4 +1,4 @@
-﻿"""Seed the dev/test database with the three test accounts and sample tasks (S-07b).
+"""Seed the dev/test database with the three test accounts and sample tasks (S-07b).
 
 Usage: python manage.py seed_test_data
 

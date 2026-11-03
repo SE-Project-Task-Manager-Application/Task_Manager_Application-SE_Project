@@ -1,4 +1,4 @@
-﻿"""TC-Org-01: assign labels to a task (TM-F-020).
+"""TC-Org-01: assign labels to a task (TM-F-020).
 
 Acceptance criterion: "Labels persist and display as chips."
 Design note (SAD): archived labels are hidden at task creation.
