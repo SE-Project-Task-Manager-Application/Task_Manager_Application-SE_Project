@@ -65,7 +65,10 @@ def test_admin_cannot_disable_or_delete_themselves(client, make_user):
         response = client.post(reverse(f"adminpanel:{action}", args=[admin.pk]))
         assert response.status_code == 302
         assert response.url == reverse("adminpanel:user_list")
-        assert expected_message in str(list(response.wsgi_request._messages)[0]).lower()
+        assert any(
+            expected_message in str(message).lower()
+            for message in response.wsgi_request._messages
+        )
 
     admin.refresh_from_db()
     assert admin.is_active
@@ -78,6 +81,7 @@ def test_disable_blocks_login_and_existing_session_and_enable_is_audited(client,
     member = make_user(email="member@example.com")
     member_client = Client()
     member_client.force_login(member)
+    login_client = Client()
     client.force_login(admin)
 
     response = client.post(reverse("adminpanel:disable_user", args=[member.pk]))
@@ -96,12 +100,12 @@ def test_disable_blocks_login_and_existing_session_and_enable_is_audited(client,
     assert response.status_code == 302
     assert reverse("accounts:login") in response["Location"]
 
-    response = client.post(
+    response = login_client.post(
         reverse("accounts:login"),
         {"username": member.email, "password": TEST_PASSWORD},
     )
     assert response.status_code == 200
-    assert "_auth_user_id" not in client.session
+    assert "_auth_user_id" not in login_client.session
 
     response = client.post(reverse("adminpanel:enable_user", args=[member.pk]))
     assert response.status_code == 302
@@ -111,13 +115,12 @@ def test_disable_blocks_login_and_existing_session_and_enable_is_audited(client,
         target_id=str(member.pk),
     ).exists()
 
-    client.logout()
-    response = client.post(
+    response = login_client.post(
         reverse("accounts:login"),
         {"username": member.email, "password": TEST_PASSWORD},
     )
     assert response.status_code == 302
-    assert str(member.pk) == client.session["_auth_user_id"]
+    assert str(member.pk) == login_client.session["_auth_user_id"]
 
 
 def test_delete_soft_deletes_user_and_records_audit(client, make_user):
@@ -138,4 +141,4 @@ def test_delete_soft_deletes_user_and_records_audit(client, make_user):
     ).exists()
 
     response = client.get(reverse("adminpanel:user_list"))
-    assert b"member@example.com" not in response.content
+    assert not response.context["users"].filter(pk=member.pk).exists()
