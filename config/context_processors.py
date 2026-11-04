@@ -30,6 +30,7 @@ USER_NAV = (
     NavItem("New task", "tasks:create"),
     NavItem("Dashboard", "dash:index"),
     NavItem("Administration", "adminpanel:index", roles=(ADMIN,)),
+    NavItem("Audit log", "adminpanel:audit_log", roles=(ADMIN,)),
     NavItem("Log out", "accounts:logout", post=True),
 )
 
