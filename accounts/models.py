@@ -37,6 +37,8 @@ class User(AbstractBaseUser, PermissionsMixin):
     email = models.EmailField(unique=True)
     role = models.CharField(max_length=20, choices=Role.choices, default=Role.MEMBER)
     is_active = models.BooleanField(default=True)
+    failed_login_attempts = models.PositiveSmallIntegerField(default=0)
+    locked_until = models.DateTimeField(null=True, blank=True)
     is_staff = models.BooleanField(default=False)
     deleted_at = models.DateTimeField(null=True, blank=True)
     date_joined = models.DateTimeField(default=timezone.now)

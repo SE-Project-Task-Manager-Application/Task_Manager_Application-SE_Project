@@ -9,3 +9,5 @@ ALLOWED_HOSTS = [
     for host in os.environ["DJANGO_ALLOWED_HOSTS"].split(",")
     if host.strip()
 ]
+SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SECURE = True

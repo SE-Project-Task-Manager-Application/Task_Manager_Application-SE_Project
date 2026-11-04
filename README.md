@@ -15,7 +15,11 @@ From the repository root:
 python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install -r requirements.txt
+cp .env.example .env
 export DJANGO_SECRET_KEY="$(python -c 'from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())')"
+docker compose up -d db
+python manage.py migrate
+python manage.py createsuperuser
 python manage.py runserver
 ```
 ## Running tests

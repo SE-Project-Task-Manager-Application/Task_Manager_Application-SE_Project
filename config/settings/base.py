@@ -113,6 +113,19 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 
+# TM-SR-002: salted, adaptive password hashing. Argon2 is first, so new and
+# upgraded passwords use it. The other Django default hashers stay so existing
+# hashes in any default format still verify and are re-hashed to Argon2 on the
+# next login. (bcrypt hashes also need the bcrypt package installed to verify.)
+PASSWORD_HASHERS = [
+    "django.contrib.auth.hashers.Argon2PasswordHasher",
+    "django.contrib.auth.hashers.PBKDF2PasswordHasher",
+    "django.contrib.auth.hashers.PBKDF2SHA1PasswordHasher",
+    "django.contrib.auth.hashers.BCryptSHA256PasswordHasher",
+    "django.contrib.auth.hashers.ScryptPasswordHasher",
+]
+
+
 # Internationalization
 # https://docs.djangoproject.com/en/6.1/topics/i18n/
 
@@ -135,7 +148,14 @@ STATICFILES_DIRS = [BASE_DIR / 'static']
 # Authentication redirects (the login view itself is added by the accounts stories)
 LOGIN_URL = '/accounts/login/'
 LOGIN_REDIRECT_URL = '/tasks/'
-
+LOGOUT_REDIRECT_URL = "/"
+SESSION_ENGINE = "django.contrib.sessions.backends.db"
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = "Lax"
+SESSION_COOKIE_SECURE = False
+CSRF_COOKIE_SECURE = False
+SESSION_COOKIE_AGE = 60 * 60 * 24  # 24 hours
+SESSION_SAVE_EVERY_REQUEST = True#
 
 # Email
 # https://docs.djangoproject.com/en/6.1/topics/email/#topic-email-configuration

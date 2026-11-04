@@ -7,6 +7,7 @@
 2. Copy `.env.example` to `.env`:
    - Windows: `copy .env.example .env`
    - Mac/Linux: `cp .env.example .env`
+   - Then set your own Django secret key: run `python -c "import secrets; print(secrets.token_urlsafe(50))"` and replace the `DJANGO_SECRET_KEY` value in your `.env` with the result. `.env` is private and ignored by Git; never commit it or share your key.
 3. Run `docker compose up -d`.
 4. MailHog inbox: http://localhost:8025
 
@@ -34,4 +35,8 @@
 
 Password for all test accounts: `SEPROG123`
 
-These accounts do not exist yet. Seed data is coming in a later update (S-07b), and the seed script will use the same password as above.
+## Seed data
+
+After `python manage.py migrate`, run `python manage.py seed_test_data` to create the three
+accounts above and sample tasks in each status. It is safe to run twice and refuses to run
+outside the dev/test settings.
