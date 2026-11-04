@@ -3,6 +3,25 @@
 {% block content %}
   <h1>Tasks</h1>
   <p><a class="button-link" href="{% url 'tasks:create' %}">New task</a></p>
+  <form method="get" aria-label="Filter tasks">
+    <label for="task-search">Search</label>
+    <input id="task-search" name="q" value="{{ request.GET.q }}" type="search">
+    <label for="task-status">Status</label>
+    <select id="task-status" name="status">
+      <option value="">All active statuses</option>
+      {% for value, label in view.task_status_choices %}
+        <option value="{{ value }}" {% if request.GET.status == value %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+    <label for="task-priority">Priority</label>
+    <select id="task-priority" name="priority">
+      <option value="">All priorities</option>
+      {% for value, label in view.task_priority_choices %}
+        <option value="{{ value }}" {% if request.GET.priority == value %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+    <button type="submit">Filter</button>
+  </form>
 
   {% if tasks %}
     <div class="table-wrap">
@@ -16,6 +35,7 @@
             <th scope="col">Due</th>
             <th scope="col">Assigned to</th>
             <th scope="col">Labels</th>
+            <th scope="col">Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -27,6 +47,26 @@
               <td>{% if task.due_date %}{{ task.due_date|date:"Y-m-d H:i" }}{% else %}&ndash;{% endif %}</td>
               <td>{% for person in task.assignees.all %}{{ person.email }}{% if not forloop.last %}, {% endif %}{% empty %}&ndash;{% endfor %}</td>
               <td>{% for label in task.labels.all %}<span class="chip">{{ label.name }}</span>{% empty %}&ndash;{% endfor %}</td>
+              <td>
+                <a href="{% url 'tasks:edit' task.pk %}">Edit</a>
+                {% if task.status == "done" %}
+                  <form method="post" action="{% url 'tasks:reopen' task.pk %}">
+                    {% csrf_token %}<input type="hidden" name="expected_version" value="{{ task.version }}">
+                    <button type="submit">Reopen</button>
+                  </form>
+                {% else %}
+                  <form method="post" action="{% url 'tasks:complete' task.pk %}">
+                    {% csrf_token %}<input type="hidden" name="expected_version" value="{{ task.version }}">
+                    <button type="submit">Complete</button>
+                  </form>
+                {% endif %}
+                {% if task.owner_id == request.user.pk %}
+                  <form method="post" action="{% url 'tasks:delete' task.pk %}">
+                    {% csrf_token %}<input type="hidden" name="expected_version" value="{{ task.version }}">
+                    <button type="submit" onclick="return window.confirm('Delete this task?')">Delete</button>
+                  </form>
+                {% endif %}
+              </td>
             </tr>
           {% endfor %}
         </tbody>

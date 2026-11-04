@@ -81,6 +81,8 @@ class Task(models.Model):
         indexes = [
             models.Index(fields=["owner", "status"]),
             models.Index(fields=["deleted_at"]),
+            models.Index(fields=["priority", "status"], name="tasks_task_priorit_6c5a5e_idx"),
+            models.Index(fields=["due_date"], name="tasks_task_due_date_3cf8f4_idx"),
         ]
 
     def __str__(self):

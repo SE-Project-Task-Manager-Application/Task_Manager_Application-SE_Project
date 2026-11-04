@@ -1,22 +1,22 @@
-"""TaskService (TM-F-010): business rules for tasks, kept out of the views (SAD 4.1, 4.3).
+"""Transactional task operations and business rules."""
 
-Only create() and assign() exist so far; update/delete/complete are added by the
-stories for TM-F-011 to TM-F-013. Rules enforced here, not in the UI:
-- assignment is restricted to the Project Manager role (SAD 4.3);
-- a task and its audit record are written in one transaction (SAD 4.4);
-- assignment e-mails the assignee, but only once the transaction has committed.
-"""
+from datetime import timedelta
 
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import transaction
+from django.utils import timezone
 
+from accounts.services import require_task_permission
 from adminpanel.services import AuditService
 from notif.services import NotificationEvent, NotificationService
 
 from .models import Task, TaskAssignment
 
-# Must match the role values in docs/schema.md.
 ROLE_PROJECT_MANAGER = "project_manager"
+
+
+class StaleTaskError(ValidationError):
+    status_code = 409
 
 
 def _is_active(user):
@@ -29,25 +29,31 @@ def _require_active_actor(actor):
 
 
 def can_assign(actor):
-    """Only a Project Manager may assign tasks."""
     return _is_active(actor) and getattr(actor, "role", None) == ROLE_PROJECT_MANAGER
+
+
+def _check_version(task, expected_version):
+    if expected_version is not None and task.version != int(expected_version):
+        raise StaleTaskError("This task was changed by someone else. Reload and try again.")
 
 
 class TaskService:
     @staticmethod
     @transaction.atomic
-    def create(actor, title, description="", due_date=None,
-               priority=Task.Priority.MEDIUM, labels=(), assignees=()):
-        """Create a task owned by `actor`. Returns the saved Task.
-
-        Raises PermissionDenied if `actor` is inactive, or asks for assignees without
-        being a Project Manager. Raises ValidationError for invalid field values.
-        """
+    def create(
+        actor,
+        title,
+        description="",
+        due_date=None,
+        priority=Task.Priority.MEDIUM,
+        labels=(),
+        assignees=(),
+    ):
         _require_active_actor(actor)
+        labels = list(labels)
         assignees = list(assignees)
         if assignees and not can_assign(actor):
             raise PermissionDenied("Only a Project Manager can assign tasks.")
-
         task = Task(
             owner=actor,
             title=(title or "").strip(),
@@ -55,16 +61,14 @@ class TaskService:
             due_date=due_date,
             priority=priority,
         )
-        task.full_clean()  # blank title, bad priority, over-long title ...
+        task.full_clean()
         for label in labels:
             if label.is_archived:
                 raise ValidationError({"labels": f"The label '{label.name}' is archived."})
         task.save()
         task.labels.set(labels)
-
         AuditService.record(
-            actor, "task.created", task,
-            details={"priority": task.priority, "status": task.status},
+            actor, "task.created", task, details={"priority": task.priority, "status": task.status}
         )
         for user in assignees:
             TaskService.assign(task, user, actor)
@@ -73,7 +77,6 @@ class TaskService:
     @staticmethod
     @transaction.atomic
     def assign(task, user, actor):
-        """Assign `user` to `task` (Project Manager only) and notify them."""
         _require_active_actor(actor)
         if not can_assign(actor):
             raise PermissionDenied("Only a Project Manager can assign tasks.")
@@ -83,12 +86,9 @@ class TaskService:
             raise ValidationError("That account is disabled and cannot be assigned tasks.")
         if TaskAssignment.objects.filter(task=task, user=user).exists():
             raise ValidationError("That user is already assigned to this task.")
-
         assignment = TaskAssignment.objects.create(task=task, user=user, assigned_by=actor)
-        AuditService.record(
-            actor, "task.assignee_added", task, details={"assignee_id": user.pk},
-        )
-        if user.pk != actor.pk:  # no e-mail to yourself
+        AuditService.record(actor, "task.assignee_added", task, details={"assignee_id": user.pk})
+        if user.pk != actor.pk:
             event = NotificationEvent(
                 kind="task.assigned",
                 recipient=user,
@@ -96,7 +96,92 @@ class TaskService:
                 body=f"You were assigned the task '{task.title}'.",
                 context={"task_id": task.pk, "assigned_by_id": actor.pk},
             )
-            # Sent right after the transaction commits (never for a rolled-back change).
-            # send() cannot raise and the mail connection times out (EMAIL_TIMEOUT).
             transaction.on_commit(lambda: NotificationService.send(event))
         return assignment
+
+    @staticmethod
+    @transaction.atomic
+    def update(actor, task, expected_version=None, **changes):
+        _require_active_actor(actor)
+        locked = Task.objects.select_for_update().get(pk=task.pk)
+        require_task_permission(actor, locked, "edit")
+        if locked.is_deleted:
+            raise ValidationError("A deleted task cannot be edited.")
+        _check_version(locked, expected_version)
+        labels = changes.pop("labels", None)
+        if labels is not None:
+            labels = list(labels)
+        assignees = changes.pop("assignees", None)
+        if assignees is not None and not can_assign(actor):
+            raise PermissionDenied("Only a Project Manager can reassign tasks.")
+        allowed = {"title", "description", "due_date", "priority", "status"}
+        invalid = set(changes) - allowed
+        if invalid:
+            raise ValidationError(f"Unsupported task fields: {', '.join(sorted(invalid))}.")
+        for field, value in changes.items():
+            setattr(locked, field, value.strip() if field == "title" and value else value)
+        locked.version += 1
+        locked.full_clean()
+        if labels is not None:
+            if any(label.is_archived for label in labels):
+                raise ValidationError("Archived labels cannot be assigned.")
+        locked.save()
+        if labels is not None:
+            locked.labels.set(labels)
+        if assignees is not None:
+            TaskAssignment.objects.filter(task=locked).delete()
+            for user in assignees:
+                TaskService.assign(locked, user, actor)
+        AuditService.record(actor, "task.updated", locked, details={"version": locked.version})
+        return locked
+
+    @staticmethod
+    @transaction.atomic
+    def delete(actor, task, expected_version=None):
+        _require_active_actor(actor)
+        locked = Task.objects.select_for_update().get(pk=task.pk)
+        require_task_permission(actor, locked, "delete")
+        if locked.is_deleted:
+            raise ValidationError("Task is already deleted.")
+        _check_version(locked, expected_version)
+        locked.deleted_at = timezone.now()
+        locked.version += 1
+        locked.save(update_fields=["deleted_at", "version", "updated_at"])
+        AuditService.record(actor, "task.deleted", locked)
+        return locked
+
+    @staticmethod
+    @transaction.atomic
+    def restore(actor, task, expected_version=None):
+        _require_active_actor(actor)
+        locked = Task.objects.select_for_update().get(pk=task.pk)
+        require_task_permission(actor, locked, "delete")
+        if not locked.is_deleted:
+            raise ValidationError("Task is not deleted.")
+        if locked.deleted_at < timezone.now() - timedelta(days=30):
+            raise ValidationError("Tasks can only be restored within 30 days.")
+        _check_version(locked, expected_version)
+        locked.deleted_at = None
+        locked.version += 1
+        locked.save(update_fields=["deleted_at", "version", "updated_at"])
+        AuditService.record(actor, "task.restored", locked)
+        return locked
+
+    @staticmethod
+    @transaction.atomic
+    def set_status(actor, task, status, expected_version=None):
+        if status not in Task.Status.values:
+            raise ValidationError("Invalid task status.")
+        return TaskService.update(actor, task, expected_version=expected_version, status=status)
+
+    @staticmethod
+    def soft_delete(actor, task, expected_version=None):
+        return TaskService.delete(actor, task, expected_version)
+
+    @staticmethod
+    def complete(actor, task, expected_version=None):
+        return TaskService.set_status(actor, task, Task.Status.DONE, expected_version)
+
+    @staticmethod
+    def reopen(actor, task, expected_version=None):
+        return TaskService.set_status(actor, task, Task.Status.TODO, expected_version)
