@@ -1,5 +1,6 @@
 from functools import wraps
 
+from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
@@ -39,7 +40,8 @@ def disable_user(request, user_id):
         User, pk=user_id, deleted_at__isnull=True
     )
     if user.pk == request.user.pk:
-        return HttpResponseForbidden("You cannot disable your own account.")
+        messages.error(request, "You cannot disable your own account.")
+        return redirect("adminpanel:user_list")
 
     if user.is_active:
         with transaction.atomic():
@@ -52,6 +54,7 @@ def disable_user(request, user_id):
                 details={"email": user.email},
             )
 
+    messages.success(request, f"{user.email} has been disabled.")
     return redirect("adminpanel:user_list")
 
 
@@ -62,6 +65,7 @@ def enable_user(request, user_id):
         User, pk=user_id, deleted_at__isnull=True
     )
     if user.is_active:
+        messages.success(request, f"{user.email} is already enabled.")
         return redirect("adminpanel:user_list")
 
     with transaction.atomic():
@@ -74,6 +78,7 @@ def enable_user(request, user_id):
             details={"email": user.email},
         )
 
+    messages.success(request, f"{user.email} has been enabled.")
     return redirect("adminpanel:user_list")
 
 
@@ -84,7 +89,8 @@ def delete_user(request, user_id):
         User, pk=user_id, deleted_at__isnull=True
     )
     if user.pk == request.user.pk:
-        return HttpResponseForbidden("You cannot delete your own account.")
+        messages.error(request, "You cannot delete your own account.")
+        return redirect("adminpanel:user_list")
 
     with transaction.atomic():
         AuditService.record(
@@ -97,4 +103,5 @@ def delete_user(request, user_id):
         user.deleted_at = timezone.now()
         user.save(update_fields=["is_active", "deleted_at"])
 
+    messages.success(request, f"{user.email} has been deleted.")
     return redirect("adminpanel:user_list")

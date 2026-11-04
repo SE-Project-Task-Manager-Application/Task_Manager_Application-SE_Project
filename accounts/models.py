@@ -9,7 +9,6 @@ class UserManager(BaseUserManager):
         if not email:
             raise ValueError("An email address is required.")
         email = self.normalize_email(email).lower()  # whole address, so A@x.com == a@x.com
-        extra_fields.setdefault("failed_login_attempts", 0)
         user = self.model(email=email, **extra_fields)
         user.set_password(password)
         user.save(using=self._db)
@@ -41,8 +40,6 @@ class User(AbstractBaseUser, PermissionsMixin):
     failed_login_attempts = models.PositiveSmallIntegerField(default=0)
     locked_until = models.DateTimeField(null=True, blank=True)
     is_staff = models.BooleanField(default=False)
-    failed_login_attempts = models.PositiveIntegerField(default=0)
-    locked_until = models.DateTimeField(null=True, blank=True)
     deleted_at = models.DateTimeField(null=True, blank=True)
     date_joined = models.DateTimeField(default=timezone.now)
 

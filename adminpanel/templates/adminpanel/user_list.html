@@ -1,67 +1,58 @@
-<!doctype html>
-<html lang="en">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Manage user accounts</title>
-</head>
-<body>
-    <main>
-        <h1>Manage user accounts</h1>
+{% extends "base.html" %}
 
-        {% if users %}
-            <table>
-                <thead>
+{% block title %}Manage user accounts{% endblock %}
+
+{% block content %}
+    <h1>Manage user accounts</h1>
+
+    {% if users %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Email</th>
+                    <th>Role</th>
+                    <th>Status</th>
+                    <th>Date joined</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user in users %}
                     <tr>
-                        <th>Email</th>
-                        <th>Role</th>
-                        <th>Status</th>
-                        <th>Date joined</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for user in users %}
-                        <tr>
-                            <td>{{ user.email }}</td>
-                            <td>{{ user.get_role_display }}</td>
-                            <td>
-                                {% if user.is_active %}
-                                    Active
-                                {% else %}
-                                    Disabled
-                                {% endif %}
-                            </td>
-                            <td>{{ user.date_joined }}</td>
-                            <td>
-                                {% if user.is_active %}
-                                    <form method="post"
-                                          action="{% url 'adminpanel:disable_user' user.id %}">
-                                        {% csrf_token %}
-                                        <button type="submit">Disable</button>
-                                    </form>
-                                {% else %}
-                                    <form method="post"
-                                          action="{% url 'adminpanel:enable_user' user.id %}">
-                                        {% csrf_token %}
-                                        <button type="submit">Enable</button>
-                                    </form>
-                                {% endif %}
-
-                                <form method="post"
-                                      action="{% url 'adminpanel:delete_user' user.id %}"
-                                      onsubmit="return confirm('Delete this account?');">
+                        <td>{{ user.email }}</td>
+                        <td>{{ user.get_role_display }}</td>
+                        <td>
+                            {% if user.is_active %}
+                                Active
+                            {% else %}
+                                Disabled
+                            {% endif %}
+                        </td>
+                        <td>{{ user.date_joined }}</td>
+                        <td>
+                            {% if user.is_active %}
+                                <form method="post" action="{% url 'adminpanel:disable_user' user.id %}">
                                     {% csrf_token %}
-                                    <button type="submit">Delete</button>
+                                    <button type="submit">Disable</button>
                                 </form>
-                            </td>
-                        </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        {% else %}
-            <p>No user accounts found.</p>
-        {% endif %}
-    </main>
-</body>
-</html>
+                            {% else %}
+                                <form method="post" action="{% url 'adminpanel:enable_user' user.id %}">
+                                    {% csrf_token %}
+                                    <button type="submit">Enable</button>
+                                </form>
+                            {% endif %}
+                            <form method="post"
+                                  action="{% url 'adminpanel:delete_user' user.id %}"
+                                  onsubmit="return confirm('Delete the account for {{ user.email|escapejs }}?');">
+                                {% csrf_token %}
+                                <button type="submit">Delete</button>
+                            </form>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>No user accounts found.</p>
+    {% endif %}
+{% endblock %}
