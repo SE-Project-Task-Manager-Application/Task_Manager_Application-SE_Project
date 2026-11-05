@@ -1,9 +1,9 @@
-﻿from django.core.management import call_command
+from django.core.management import call_command
 from django.core.management.base import CommandError
 from django.test import TestCase, override_settings
 
 from accounts.models import User
-from tasks.models import Task
+from tasks.models import Label, Task
 
 
 class SeedTestDataTests(TestCase):
@@ -30,3 +30,14 @@ class SeedTestDataTests(TestCase):
         with self.assertRaises(CommandError):
             call_command("seed_test_data")
         self.assertEqual(User.objects.count(), 0)
+
+
+class SeedLabelTests(TestCase):
+    def test_seed_creates_labels_once_and_archives_one(self):
+        call_command("seed_test_data")
+        call_command("seed_test_data")
+        self.assertEqual(Label.objects.count(), 4)
+        self.assertEqual(
+            list(Label.objects.filter(is_archived=True).values_list("name", flat=True)),
+            ["Legacy"],
+        )
