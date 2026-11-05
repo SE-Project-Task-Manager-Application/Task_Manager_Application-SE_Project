@@ -15,7 +15,7 @@ def _active(user):
 def can_view_task(actor, task):
     if not _active(actor):
         return False
-    if getattr(actor, "role", None) == "admin" or task.owner_id == actor.pk:
+    if task.owner_id == actor.pk:
         return True
     return task.assignments.filter(user_id=actor.pk).exists()
 

@@ -33,7 +33,13 @@ def can_assign(actor):
 
 
 def _check_version(task, expected_version):
-    if expected_version is not None and task.version != int(expected_version):
+    if expected_version is None:
+        return
+    try:
+        version = int(expected_version)
+    except (TypeError, ValueError):
+        raise StaleTaskError("This task was changed by someone else. Reload and try again.")
+    if task.version != version:
         raise StaleTaskError("This task was changed by someone else. Reload and try again.")
 
 
@@ -123,15 +129,30 @@ class TaskService:
         locked.version += 1
         locked.full_clean()
         if labels is not None:
-            if any(label.is_archived for label in labels):
+            existing_label_ids = set(locked.labels.values_list("pk", flat=True))
+            if any(label.is_archived and label.pk not in existing_label_ids for label in labels):
                 raise ValidationError("Archived labels cannot be assigned.")
         locked.save()
         if labels is not None:
             locked.labels.set(labels)
         if assignees is not None:
-            TaskAssignment.objects.filter(task=locked).delete()
+            existing_assignments = {
+                assignment.user_id: assignment
+                for assignment in TaskAssignment.objects.filter(task=locked)
+            }
+            new_assignee_ids = {user.pk for user in assignees}
+            removed_ids = set(existing_assignments) - new_assignee_ids
+            TaskAssignment.objects.filter(task=locked, user_id__in=removed_ids).delete()
+            for user_id in removed_ids:
+                AuditService.record(
+                    actor,
+                    "task.assignee_removed",
+                    locked,
+                    details={"assignee_id": user_id},
+                )
             for user in assignees:
-                TaskService.assign(locked, user, actor)
+                if user.pk not in existing_assignments:
+                    TaskService.assign(locked, user, actor)
         AuditService.record(actor, "task.updated", locked, details={"version": locked.version})
         return locked
 

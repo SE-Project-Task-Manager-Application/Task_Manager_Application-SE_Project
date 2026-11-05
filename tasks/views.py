@@ -1,15 +1,17 @@
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
 from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect
+from django.utils.dateparse import parse_date
 from django.views.decorators.http import require_POST
 from django.views.generic import FormView, ListView, UpdateView
 
 from accounts.services import require_task_permission
 
 from .forms import TaskCreateForm, TaskForm
-from .models import Task
+from .models import Label, Task
 from .services import StaleTaskError, TaskService
 
 
@@ -24,9 +26,9 @@ class TaskListView(LoginRequiredMixin, ListView):
 
     def get_queryset(self):
         user = self.request.user
-        queryset = Task.objects.active()
-        if getattr(user, "role", None) != "admin":
-            queryset = queryset.filter(Q(owner=user) | Q(assignments__user=user))
+        show = self.request.GET.get("show", "active")
+        queryset = Task.objects.deleted() if show == "deleted" else Task.objects.active()
+        queryset = queryset.filter(Q(owner=user) | Q(assignments__user=user))
         queryset = (
             queryset.select_related("owner").prefetch_related("labels", "assignees").distinct()
         )
@@ -42,8 +44,10 @@ class TaskListView(LoginRequiredMixin, ListView):
             queryset = queryset.filter(labels__name__iexact=label)
         due_date = self.request.GET.get("due_date")
         if due_date:
-            queryset = queryset.filter(due_date__date=due_date)
-        if self.request.GET.get("show") != "all":
+            parsed_due_date = parse_date(due_date)
+            if parsed_due_date:
+                queryset = queryset.filter(due_date__date=parsed_due_date)
+        if show == "active" and not self.request.GET.get("status"):
             queryset = queryset.exclude(status=Task.Status.DONE)
         sort_fields = {"title", "priority", "status", "due_date", "created_at", "updated_at"}
         sort = self.request.GET.get("sort", "created_at")
@@ -55,6 +59,19 @@ class TaskListView(LoginRequiredMixin, ListView):
             queryset = queryset.order_by(f"-{sort}", "-id")
         return queryset
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["labels"] = Label.objects.order_by("name")
+        context["sort_choices"] = (
+            ("created_at", "Created"),
+            ("updated_at", "Updated"),
+            ("title", "Title"),
+            ("priority", "Priority"),
+            ("status", "Status"),
+            ("due_date", "Due date"),
+        )
+        return context
+
 
 class TaskEditView(LoginRequiredMixin, UpdateView):
     template_name = "tasks/task_form.html"
@@ -62,7 +79,7 @@ class TaskEditView(LoginRequiredMixin, UpdateView):
     context_object_name = "task"
 
     def get_object(self, queryset=None):
-        task = get_object_or_404(Task, pk=self.kwargs["pk"])
+        task = get_object_or_404(Task.objects.active(), pk=self.kwargs["pk"])
         require_task_permission(self.request.user, task, "edit")
         return task
 
@@ -126,31 +143,39 @@ class TaskCreateView(LoginRequiredMixin, FormView):
 
 def _task_action(request, pk, action, success_message):
     task = get_object_or_404(Task, pk=pk)
-    if action == "delete":
-        TaskService.delete(request.user, task, request.POST.get("expected_version"))
-    elif action == "restore":
-        TaskService.restore(request.user, task, request.POST.get("expected_version"))
-    else:
-        TaskService.set_status(request.user, task, action, request.POST.get("expected_version"))
+    try:
+        if action == "delete":
+            TaskService.delete(request.user, task, request.POST.get("expected_version"))
+        elif action == "restore":
+            TaskService.restore(request.user, task, request.POST.get("expected_version"))
+        else:
+            TaskService.set_status(request.user, task, action, request.POST.get("expected_version"))
+    except (ValidationError, StaleTaskError) as error:
+        messages.error(request, error.messages[0])
+        return redirect("tasks:list")
     messages.success(request, success_message)
     return redirect("tasks:list")
 
 
+@login_required
 @require_POST
 def delete_task(request, pk):
     return _task_action(request, pk, "delete", "Task deleted.")
 
 
+@login_required
 @require_POST
 def restore_task(request, pk):
     return _task_action(request, pk, "restore", "Task restored.")
 
 
+@login_required
 @require_POST
 def complete_task(request, pk):
     return _task_action(request, pk, Task.Status.DONE, "Task completed.")
 
 
+@login_required
 @require_POST
 def reopen_task(request, pk):
     return _task_action(request, pk, Task.Status.TODO, "Task reopened.")

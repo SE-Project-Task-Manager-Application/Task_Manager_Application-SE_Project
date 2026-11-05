@@ -1,5 +1,6 @@
 from django import forms
 from django.contrib.auth import get_user_model
+from django.db.models import Q
 
 from .models import Label, Task
 from .services import can_assign
@@ -37,9 +38,14 @@ class TaskForm(forms.ModelForm):
 
     def __init__(self, *args, user, include_status=False, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields["labels"].queryset = Label.objects.filter(is_archived=False)
+        label_query = Q(is_archived=False)
+        if self.instance.pk:
+            label_query |= Q(tasks=self.instance)
+        self.fields["labels"].queryset = Label.objects.filter(label_query).distinct()
         if not include_status:
             self.fields.pop("status")
+        else:
+            self.fields["expected_version"].required = True
         if can_assign(user):
             user_model = get_user_model()
             self.fields["assignees"] = forms.ModelMultipleChoiceField(
