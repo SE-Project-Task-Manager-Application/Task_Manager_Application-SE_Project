@@ -1,7 +1,6 @@
 from datetime import UTC, datetime
 
 import pytest
-from django.test import Client
 from django.urls import reverse
 
 from adminpanel.models import AuditRecord
