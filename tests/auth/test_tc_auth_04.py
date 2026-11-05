@@ -64,6 +64,19 @@ def test_link_expires_after_30_minutes(client, make_user):
     assert page.context["validlink"] is False
 
 
+def test_link_still_works_at_29_minutes(client, make_user):
+    make_user(email="ontime@example.com")
+    _request_reset(client, "ontime@example.com")
+    link = _link_from_outbox()
+
+    from django.contrib.auth.tokens import default_token_generator as gen
+
+    real_now = gen._now()
+    with mock.patch.object(type(gen), "_now", return_value=real_now + timedelta(minutes=29)):
+        page = client.get(link, follow=True)
+    assert page.context["validlink"] is True
+
+
 def test_unknown_email_gets_same_response_and_no_mail(client, db):
     response = _request_reset(client, "nobody@example.com")
     assert response.status_code == 302
