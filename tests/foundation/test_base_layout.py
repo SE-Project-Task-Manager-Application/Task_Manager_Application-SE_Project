@@ -76,9 +76,16 @@ def test_guest_sees_only_login(nav_urls):
     assert labels == ["Log in"]  # "Register" is skipped: no such URL name yet
 
 
-def test_menu_skips_entries_whose_pages_do_not_exist():
-    # Without the stub URLconf, none of the optional menu URL names exist.
-    assert [i for i in _items("admin") if i["label"] == "Administration"] == []
+def test_menu_skips_entries_whose_pages_do_not_exist(settings):
+    # Use a URLconf without the admin route even though the real app now defines it.
+    module = types.ModuleType("nav_urls_without_admin")
+    module.urlpatterns = []
+    sys.modules[module.__name__] = module
+    settings.ROOT_URLCONF = module.__name__
+    try:
+        assert [i for i in _items("admin") if i["label"] == "Administration"] == []
+    finally:
+        del sys.modules[module.__name__]
 
 
 def test_current_page_is_marked(nav_urls):
