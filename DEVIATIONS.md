@@ -100,7 +100,7 @@ These are not deviations by themselves, because the SAD left them open. Each row
 | Background jobs (reminders, queued e-mail) | A scheduled Django management command; no Celery | Proposed |
 | Attachment scanning | A scanner stub behind an interface (extension and size checks, EICAR test file); no real antivirus integration | Proposed |
 | REST/JSON endpoints | Not built; server-rendered Django views only | Proposed |
-| Who can recover a soft-deleted task | The task owner | Proposed |
+| Who can recover a soft-deleted task | The task owner | Applied |
 | Who can assign tasks | The Project Manager role, to any user | Proposed |
 | Who can change collaborator permissions | The task owner (per TM-F-030 and TM-F-032) | Proposed |
 | Task status values | `todo`, `in_progress`, and `done`, as agreed by Dev A and Dev B and recorded in `docs/schema.md` | Applied |
