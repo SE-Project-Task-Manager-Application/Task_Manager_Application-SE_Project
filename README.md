@@ -1,67 +1,119 @@
 # Task Manager Application
 
-A Django task management application.
+A Django web application for creating, organising, assigning, sharing and tracking tasks.
+Roles: Team Member, Project Manager and Administrator.
 
 ## Requirements
 
 - Python 3.12 or newer
-- pip
+- Docker Desktop (runs PostgreSQL and the MailHog test mail server)
+- Git
 
-## Local development
+## Quick start (local development)
 
 From the repository root:
 
+1. Create and activate a virtual environment:
+   - Mac/Linux: `python3 -m venv .venv` then `source .venv/bin/activate`
+   - Windows: `python -m venv .venv` then `.venv\Scripts\activate`
+2. Install the dependencies:
+   ```bash
+   python -m pip install -r requirements.txt -r requirements-dev.txt
+   ```
+3. Create your private settings file:
+   - Mac/Linux: `cp .env.example .env`
+   - Windows: `copy .env.example .env`
+
+   Then generate a Django secret key with
+   `python -c "import secrets; print(secrets.token_urlsafe(50))"` and paste the result as the
+   value of `DJANGO_SECRET_KEY` in `.env`. `.env` is ignored by Git. Never commit it or share
+   your key.
+4. Start PostgreSQL and MailHog:
+   ```bash
+   docker compose up -d
+   ```
+5. Create the database tables and the test data:
+   ```bash
+   python manage.py migrate
+   python manage.py seed_test_data
+   ```
+6. Start the app:
+   ```bash
+   python manage.py runserver
+   ```
+   Open http://127.0.0.1:8000/ in your browser.
+
+## Test accounts
+
+`seed_test_data` creates these accounts, plus sample tasks in each status and sample labels
+(Bug, Feature, Documentation, and an archived one, Legacy). It is safe to run twice and
+refuses to run outside the dev/test settings.
+
+| Role            | Email                |
+|-----------------|----------------------|
+| Team Member     | member@example.com   |
+| Project Manager | pm@example.com       |
+| Administrator   | admin@example.com    |
+
+Password for all test accounts (test only): `SEPROG123`
+
+## Services
+
+- PostgreSQL 16 listens on 127.0.0.1:5432. Django reads `DB_NAME`, `DB_USER`, `DB_PASSWORD`,
+  `DB_HOST` and `DB_PORT` from `.env`.
+- MailHog receives e-mail on 127.0.0.1:1025. Read the captured messages in its inbox at
+  http://127.0.0.1:8025/ (registration, password-reset, e-mail-change and assignment mails).
+- Stop the services: `docker compose down`.
+- Stop them and wipe the database (deletes all data): `docker compose down -v`.
+- If `docker compose up` says port 5432 is already in use, another PostgreSQL is running on
+  your machine. Stop it, then start the services again.
+
+## Running tests and lint
+
+With the services running (the tests use the PostgreSQL container):
+
 ```bash
-python3 -m venv .venv
-source .venv/bin/activate
-python -m pip install -r requirements.txt
-cp .env.example .env
-export DJANGO_SECRET_KEY="$(python -c 'from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())')"
-docker compose up -d db
-python manage.py migrate
-python manage.py createsuperuser
-python manage.py runserver
-```
-## Running tests
-
-From the repository root, run:
-
-```bash
-python manage.py test
+pytest
+ruff check .
 ```
 
-Open http://127.0.0.1:8000/ in your browser.
-
-The development settings are loaded by default.
-## Database and email services
-
-The application uses PostgreSQL 16. Django reads DB_NAME, DB_USER, DB_PASSWORD, DB_HOST, and DB_PORT from the environment. For local development, these values are loaded from .env.
-
-Copy the example environment file, then start PostgreSQL and MailHog:
-
-```bash
-cp .env.example .env
-docker compose up -d db mailhog
-```
-PostgreSQL is available at 127.0.0.1:5432. MailHog receives email at 127.0.0.1:1025; view captured messages at http://127.0.0.1:8025/.
-To stop the services, run docker compose down.
+`pytest` uses `config.settings.test`, so no extra environment variables are needed. GitHub
+Actions runs both commands on every pull request. See `tests/README.md` for the folder layout,
+which follows the test-case IDs in the Test Plan.
 
 ## Settings
 
-Settings are split into three files:
-
 - `config/settings/base.py` contains shared settings.
-- `config/settings/dev.py` contains development settings.
+- `config/settings/dev.py` contains development settings (the default for `manage.py`).
+- `config/settings/test.py` contains the settings used by the automated tests.
 - `config/settings/prod.py` contains production settings.
 
-For production, set `DJANGO_SETTINGS_MODULE=config.settings.prod` and provide `DJANGO_SECRET_KEY` and `DJANGO_ALLOWED_HOSTS` through the environment.
+For production, set `DJANGO_SETTINGS_MODULE=config.settings.prod` and provide
+`DJANGO_SECRET_KEY` and `DJANGO_ALLOWED_HOSTS` through the environment.
 
 ## Django apps
 
-- `accounts` — authentication and user accounts
-- `tasks` — tasks
-- `collab` — collaboration
-- `dash` — dashboard
-- `notif` — notifications
-- `adminpanel` — administration
-- `storage` — file storage
+- `accounts` - authentication, accounts, profile and password reset
+- `tasks` - tasks, labels, assignment and search
+- `collab` - collaboration
+- `dash` - dashboard
+- `notif` - notifications
+- `adminpanel` - user administration, audit records and the audit log
+- `storage` - file storage
+
+## Project documents
+
+- `docs/schema.md` - the agreed data model
+- `DEVIATIONS.md` - every place where what we build differs from the submitted SRS, SAD and
+  Test Plan, with the reason
+- `tests/README.md` - test layout and naming
+
+## Contributing
+
+- Branch from `dev`: `feature/<issue-number>-short-name`.
+- Open the pull request against `dev` and fill in the template. Use `Part of #N` until the
+  tester has run the test case by hand on the final commit; use `Closes #N` only after that.
+- GitHub Actions (lint and tests) must pass. The repo owner reviews and merges with
+  "Squash and merge".
+- If your change differs from the SRS, SAD or Test Plan, add an entry to `DEVIATIONS.md`.
+- Never commit `.env`, uploaded files (`media/`) or a virtual environment.
