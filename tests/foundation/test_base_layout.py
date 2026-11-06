@@ -25,7 +25,8 @@ def nav_urls(settings):
         path("tasks/", include(([path("", _stub_view, name="list"),
                                  path("new/", _stub_view, name="create")], "tasks"))),
         path("dash/", include(([path("", _stub_view, name="index")], "dash"))),
-        path("manage/", include(([path("", _stub_view, name="index")], "adminpanel"))),
+        path("manage/", include(([path("", _stub_view, name="index"),
+                                 path("audit/", _stub_view, name="audit_log")], "adminpanel"))),
         path("acct/", include(([path("login/", _stub_view, name="login"),
                                 path("logout/", _stub_view, name="logout")], "accounts"))),
     ]
@@ -67,6 +68,9 @@ def test_only_admin_sees_administration(nav_urls):
     assert "Administration" in _labels("admin")
     assert "Administration" not in _labels("member")
     assert "Administration" not in _labels("project_manager")
+    assert "Audit log" in _labels("admin")
+    assert "Audit log" not in _labels("member")
+    assert "Audit log" not in _labels("project_manager")
 
 
 def test_guest_sees_only_login(nav_urls):

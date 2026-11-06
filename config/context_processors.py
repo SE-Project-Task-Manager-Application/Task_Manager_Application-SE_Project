@@ -31,6 +31,7 @@ USER_NAV = (
     NavItem("Dashboard", "dash:index"),
     NavItem("Profile", "accounts:profile"),
     NavItem("Administration", "adminpanel:index", roles=(ADMIN,)),
+    NavItem("Audit log", "adminpanel:audit_log", roles=(ADMIN,)),
     NavItem("Log out", "accounts:logout", post=True),
 )
 
