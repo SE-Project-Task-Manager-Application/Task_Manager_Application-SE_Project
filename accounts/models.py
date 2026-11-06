@@ -36,6 +36,8 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     email = models.EmailField(unique=True)
     role = models.CharField(max_length=20, choices=Role.choices, default=Role.MEMBER)
+    full_name = models.CharField(max_length=150, blank=True)
+    avatar = models.FileField(upload_to="avatars/", blank=True)
     is_active = models.BooleanField(default=True)
     failed_login_attempts = models.PositiveSmallIntegerField(default=0)
     locked_until = models.DateTimeField(null=True, blank=True)
