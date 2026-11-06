@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% block title %}Rename category{% endblock %}
+{% block content %}
+  <h1>Rename category</h1>
+  <p>Current name: {{ current_name }}</p>
+  {% include "components/form.html" with form=form submit_label="Save name" %}
+  <p><a href="{% url 'adminpanel:category_list' %}">Back to categories</a></p>
+{% endblock %}

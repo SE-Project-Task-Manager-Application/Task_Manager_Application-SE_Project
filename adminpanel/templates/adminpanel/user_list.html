@@ -4,6 +4,7 @@
 
 {% block content %}
     <h1>Manage user accounts</h1>
+    <p><a href="{% url 'adminpanel:category_list' %}">Manage categories</a></p>
 
     {% if users %}
         <table>
