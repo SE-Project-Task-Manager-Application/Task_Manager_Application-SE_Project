@@ -16,6 +16,7 @@
             <th scope="col">Due</th>
             <th scope="col">Assigned to</th>
             <th scope="col">Labels</th>
+            <th scope="col">Access</th>
           </tr>
         </thead>
         <tbody>
@@ -27,6 +28,30 @@
               <td>{% if task.due_date %}{{ task.due_date|date:"Y-m-d H:i" }}{% else %}&ndash;{% endif %}</td>
               <td>{% for person in task.assignees.all %}{{ person.email }}{% if not forloop.last %}, {% endif %}{% empty %}&ndash;{% endfor %}</td>
               <td>{% for label in task.labels.all %}<span class="chip">{{ label.name }}</span>{% empty %}&ndash;{% endfor %}</td>
+              <td>
+                {% if task.owner_id == user.id %}
+                  <strong>Owner</strong>
+                {% else %}
+                  {% for share in task.shares.all %}{% if share.user_id == user.id %}{{ share.get_permission_display }}{% endif %}{% endfor %}
+                {% endif %}
+                {% if task.owner_id == user.id %}
+                  {% for share in task.shares.all %}<div>{{ share.user.email }}: {{ share.get_permission_display }}</div>{% endfor %}
+                  <details>
+                    <summary>Share task</summary>
+                    <form method="post" action="{% url 'tasks:share' task.id %}">
+                      {% csrf_token %}
+                      <label for="share-email-{{ task.id }}">User email</label>
+                      <input id="share-email-{{ task.id }}" type="email" name="email" required>
+                      <label for="share-permission-{{ task.id }}">Permission</label>
+                      <select id="share-permission-{{ task.id }}" name="permission">
+                        <option value="viewer">Viewer</option>
+                        <option value="editor">Editor</option>
+                      </select>
+                      <button type="submit">Share</button>
+                    </form>
+                  </details>
+                {% endif %}
+              </td>
             </tr>
           {% endfor %}
         </tbody>
