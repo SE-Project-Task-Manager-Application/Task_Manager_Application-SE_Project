@@ -10,7 +10,7 @@ from .services import TaskService
 
 
 class TaskListView(LoginRequiredMixin, ListView):
-    """Tasks the user owns or is assigned to (sharing is added by the collab stories)."""
+    """Tasks the user owns, is assigned to, or can view through a share."""
 
     template_name = "tasks/task_list.html"
     context_object_name = "tasks"
@@ -19,9 +19,9 @@ class TaskListView(LoginRequiredMixin, ListView):
         user = self.request.user
         return (
             Task.objects.active()
-            .filter(Q(owner=user) | Q(assignments__user=user))
+            .filter(Q(owner=user) | Q(assignments__user=user) | Q(shares__user=user))
             .select_related("owner")
-            .prefetch_related("labels", "assignees")
+            .prefetch_related("labels", "assignees", "shares__user")
             .distinct()
         )
 
