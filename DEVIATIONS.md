@@ -68,14 +68,14 @@ The submitted documents are the baseline and are not edited after submission. Ev
 - **Impact:** assignment and reassignment (TC-Task-01/02) work on assignment records. Anything that read "the assignee" reads the task's assignment list instead.
 - **Status:** Applied
 
-### D-07 - Notification stub is not stored in the database
+### D-07 - Non-reminder notifications are still sent directly
 - **Logged:** 2026-10-15
 - **Document:** SAD, section 4.1 (NotifModule data: "Notification / delivery status") and section 4.3
 - **Planned:** notifications are delivered asynchronously and their delivery status is persisted.
-- **What we are doing instead:** S-05 provides NotificationService as a thin stub. When a task is assigned, TaskService sends the e-mail directly after the database transaction commits (MailHog in development); `send()` never raises and the mail connection times out after `EMAIL_TIMEOUT` (5 seconds). `enqueue()` and `deliver_pending()` exist for a later background job but nothing calls them yet. No Notification record, retry, or due-date reminder exists yet; those come with the notification stories.
-- **Why:** Sprint 0 only needs the interface to exist and TC-Task-01's "assignee is notified" to be checkable.
-- **Impact:** a request that assigns a task waits for the mail server for up to 5 seconds if it is unreachable, and a failed mail is logged but not retried, so the STP 5.2 retry test waits for the later story. TC-Task-01 is verified in MailHog (http://localhost:8025) or `django.core.mail.outbox`.
-- **Status:** Proposed (to be confirmed by the team)
+- **What we are doing instead:** task due-date reminders are persisted and retried by `python manage.py send_due_reminders`, scheduled to run once per minute and to queue reminders 24 hours before the due date. Assignment and account e-mails still use `NotificationService.send()` directly after their database transactions; the legacy in-memory `enqueue()` and `deliver_pending()` are not used for those messages.
+- **Why:** TM-F-014 now has a persistent scheduled path; other notification stories have not yet been moved to it.
+- **Impact:** due reminders survive process restarts and failed sends retry on later scheduler runs. Assignment and account mail can still wait up to `EMAIL_TIMEOUT` (5 seconds), and failed direct sends are not retried; see D-08 and D-09.
+- **Status:** Partially resolved by TM-F-014 (2026-11-07); remaining direct-send behavior is proposed for follow-up.
 
 ### D-08 - Registration confirmation email is sent synchronously
 - **Logged:** 2026-10-29
