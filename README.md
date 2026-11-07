@@ -63,6 +63,10 @@ Password for all test accounts (test only): `SEPROG123`
   `DB_HOST` and `DB_PORT` from `.env`.
 - MailHog receives e-mail on 127.0.0.1:1025. Read the captured messages in its inbox at
   http://127.0.0.1:8025/ (registration, password-reset, e-mail-change and assignment mails).
+- Task reminders are scheduled for 24 hours before the due date. Run
+  `python manage.py send_due_reminders` once per minute with your system scheduler (for
+  example, a cron entry) to queue and send reminders. Failed sends remain queued and retry
+  on later runs. The command is safe to run repeatedly.
 - Stop the services: `docker compose down`.
 - Stop them and wipe the database (deletes all data): `docker compose down -v`.
 - If `docker compose up` says port 5432 is already in use, another PostgreSQL is running on
