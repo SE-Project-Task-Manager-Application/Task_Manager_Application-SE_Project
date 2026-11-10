@@ -45,3 +45,24 @@ def test_expired_restore_shows_message(client, make_user):
     assert response.status_code == 200
     assert "restored within 30 days" in response.content.decode()
     assert Task.objects.get(pk=task.pk).is_deleted
+
+
+def test_owner_delete_removes_task_from_every_list(client, make_user):
+    owner = make_user()
+    task = Task.objects.create(owner=owner, title="Deleted everywhere")
+    client.force_login(owner)
+
+    response = client.post(
+        reverse("tasks:delete", args=[task.pk]),
+        {"expected_version": task.version},
+        follow=True,
+    )
+
+    assert response.status_code == 200
+    assert "Deleted everywhere" not in response.content.decode()
+    assert "Deleted everywhere" not in client.get(
+        reverse("tasks:list"), {"show": "all"}
+    ).content.decode()
+    assert "Deleted everywhere" in client.get(
+        reverse("tasks:list"), {"show": "deleted"}
+    ).content.decode()

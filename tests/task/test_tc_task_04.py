@@ -39,3 +39,26 @@ def test_pagination_done_tasks_and_deleted_task_controls(client, make_user):
     stranger_deleted = client.get(reverse("tasks:list"), {"show": "deleted"}).content.decode()
     assert ">Deleted<" not in stranger_deleted
     assert reverse("tasks:restore", args=[deleted.pk]) not in stranger_deleted
+
+
+def test_complete_hides_task_and_reopen_restores_it_to_default_list(client, make_user):
+    owner = make_user()
+    task = Task.objects.create(owner=owner, title="Lifecycle")
+    client.force_login(owner)
+
+    response = client.post(
+        reverse("tasks:complete", args=[task.pk]),
+        {"expected_version": task.version},
+        follow=True,
+    )
+    assert response.status_code == 200
+    assert "Lifecycle" not in response.content.decode()
+
+    task.refresh_from_db()
+    response = client.post(
+        reverse("tasks:reopen", args=[task.pk]),
+        {"expected_version": task.version},
+        follow=True,
+    )
+    assert response.status_code == 200
+    assert "Lifecycle" in response.content.decode()

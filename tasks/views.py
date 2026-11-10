@@ -144,12 +144,15 @@ class TaskCreateView(LoginRequiredMixin, FormView):
 def _task_action(request, pk, action, success_message):
     task = get_object_or_404(Task, pk=pk)
     try:
+        expected_version = request.POST.get("expected_version")
+        if expected_version is None:
+            raise StaleTaskError("This task was changed by someone else. Reload and try again.")
         if action == "delete":
-            TaskService.delete(request.user, task, request.POST.get("expected_version"))
+            TaskService.delete(request.user, task, expected_version)
         elif action == "restore":
-            TaskService.restore(request.user, task, request.POST.get("expected_version"))
+            TaskService.restore(request.user, task, expected_version)
         else:
-            TaskService.set_status(request.user, task, action, request.POST.get("expected_version"))
+            TaskService.set_status(request.user, task, action, expected_version)
     except (ValidationError, StaleTaskError) as error:
         messages.error(request, error.messages[0])
         return redirect("tasks:list")

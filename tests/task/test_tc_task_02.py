@@ -33,6 +33,42 @@ def test_stale_edit_through_form_shows_error_and_missing_version_is_rejected(cli
     assert Task.objects.get(pk=task.pk).title == "Original"
 
 
+def test_edit_saves_every_field_and_increments_version(make_user):
+    owner = make_user()
+    label = Label.objects.create(name="urgent")
+    task = Task.objects.create(owner=owner, title="Original")
+
+    updated = TaskService.update(
+        owner,
+        task,
+        expected_version=1,
+        title="Updated",
+        description="Details",
+        due_date=task.created_at,
+        priority=Task.Priority.HIGH,
+        status=Task.Status.IN_PROGRESS,
+        labels=[label],
+    )
+
+    assert updated.title == "Updated"
+    assert updated.description == "Details"
+    assert updated.due_date == task.created_at
+    assert updated.priority == Task.Priority.HIGH
+    assert updated.status == Task.Status.IN_PROGRESS
+    assert updated.version == 2
+    assert list(updated.labels.all()) == [label]
+
+
+def test_assigned_user_can_edit_task(make_user):
+    owner, editor = make_user(), make_user()
+    task = Task.objects.create(owner=owner, title="Shared")
+    TaskAssignment.objects.create(task=task, user=editor, assigned_by=owner)
+
+    TaskService.update(editor, task, title="Edited")
+
+    assert Task.objects.get(pk=task.pk).title == "Edited"
+
+
 def test_pm_edit_keeps_existing_assignment_and_only_notifies_new_assignee(
     client, make_user, django_capture_on_commit_callbacks
 ):
@@ -84,6 +120,27 @@ def test_pm_edit_keeps_existing_assignment_and_only_notifies_new_assignee(
         action="task.assignee_removed", target_id=str(task.pk), details={"assignee_id": second.pk}
     ).exists()
     assert AuditRecord.objects.filter(action="task.assignee_added").count() == 1
+
+
+@pytest.mark.parametrize("route_name", ["complete", "reopen"])
+def test_action_route_without_expected_version_is_rejected(client, make_user, route_name):
+    owner = make_user()
+    task = Task.objects.create(
+        owner=owner,
+        title="Versioned",
+        status=Task.Status.DONE if route_name == "reopen" else Task.Status.TODO,
+    )
+    client.force_login(owner)
+
+    response = client.post(reverse(f"tasks:{route_name}", args=[task.pk]), follow=True)
+
+    assert response.status_code == 200
+    assert "changed by someone else" in response.content.decode()
+    task.refresh_from_db()
+    assert task.version == 1
+    assert task.status == (
+        Task.Status.DONE if route_name == "reopen" else Task.Status.TODO
+    )
 
 
 def test_edit_preserves_existing_archived_label_but_rejects_new_archived_label(make_user):
