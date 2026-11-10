@@ -13,7 +13,7 @@ def scan_attachment(upload):
     if upload.size > MAX_ATTACHMENT_BYTES:
         return False, "The attachment must be 10 MB or smaller."
     name = upload.name or ""
-    if not re.fullmatch(r"[^\\/:*?\"<>|\\r\\n]+", name) or "." not in name:
+    if not re.fullmatch(r'[^\\/:*?"<>|\r\n]+', name) or "." not in name:
         return False, "The attachment filename is invalid."
     if "." + name.rsplit(".", 1)[-1].lower() not in ALLOWED_EXTENSIONS:
         return False, "This attachment type is not allowed."
