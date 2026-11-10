@@ -167,3 +167,9 @@ EMAIL_USE_TLS = False
 EMAIL_USE_SSL = False
 # Give up on an unreachable mail server after 5 seconds instead of hanging the request.
 EMAIL_TIMEOUT = 5
+
+# Password reset links expire after 30 minutes (TM-F-004).
+PASSWORD_RESET_TIMEOUT = 30 * 60
+
+# Uploaded profile pictures (TM-F-005), served through a login-required view.
+MEDIA_ROOT = BASE_DIR / "media"

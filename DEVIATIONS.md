@@ -7,7 +7,7 @@
 The submitted documents are the baseline and are not edited after submission. Every place where what we build or do differs from them is recorded here, with the reason, so it can be explained at the final demo.
 
 **When to add an entry:** any time the product, the schedule, the test approach or the architecture differs from the SRS, SAD or STP.  
-**How:** add the next ID (D-06, D-07, ...), keep each field to a sentence or two, and link the issue or PR where useful.  
+**How:** add the next ID (D-13, D-14, ...), keep each field to a sentence or two, and link the issue or PR where useful.  
 **Status values:** *Applied* (it has happened), *Proposed* (the team has not confirmed it yet), *Open* (still to be decided).
 
 ---
@@ -36,7 +36,7 @@ The submitted documents are the baseline and are not edited after submission. Ev
 - **Logged:** 2026-10-11
 - **Document:** STP, Test Environment / Test Data
 - **Planned:** seed data with sample projects and tasks in each status.
-- **What we are doing instead:** seed data contains test accounts and sample tasks only.
+- **What we are doing instead:** seed data contains test accounts, sample tasks and sample labels only.
 - **Why:** no requirement defines a Projects entity (also listed as a SAD open issue, see section 2), so none is being built.
 - **Impact:** none on any of the 34 requirements.
 - **Status:** Proposed (to be confirmed by the team)
@@ -77,7 +77,7 @@ The submitted documents are the baseline and are not edited after submission. Ev
 - **Impact:** a request that assigns a task waits for the mail server for up to 5 seconds if it is unreachable, and a failed mail is logged but not retried, so the STP 5.2 retry test waits for the later story. TC-Task-01 is verified in MailHog (http://localhost:8025) or `django.core.mail.outbox`.
 - **Status:** Proposed (to be confirmed by the team)
 
-### D-08 — Registration confirmation email is sent synchronously
+### D-08 - Registration confirmation email is sent synchronously
 - **Logged:** 2026-10-29
 - **Document:** Issue #10 / ADR-003
 - **Planned:** Registration confirmation e-mail is queued so the request does not wait for the mail server.
@@ -85,6 +85,43 @@ The submitted documents are the baseline and are not edited after submission. Ev
 - **Why:** Keep the confirmation e-mail deliverable while a background delivery mechanism is not available.
 - **Impact:** Registration is best-effort: a mail failure is logged, the account stays active, and delivery is not retried.
 - **Status:** Proposed (to be confirmed by the team)
+
+### D-09 - Account e-mails sent directly; profile pictures on local disk
+- **Logged:** 2026-11-06
+- **Document:** SAD, ADR-003 (isolated, asynchronous notification delivery) and section 4.1 (StorageModule); SRS TM-F-004 and TM-F-005
+- **Planned:** account e-mails are queued and delivered by a background job; stored files go through validation and scanning.
+- **What we are doing instead:** password-reset and e-mail-change messages are sent directly through `NotificationService.send()`, which never raises and times out after 5 seconds. Profile pictures are stored on local disk (`MEDIA_ROOT`) and served through a login-required view. An upload is checked by extension, the 10 MB limit and the file's first bytes; it is not decoded or virus-scanned.
+- **Why:** there is no background delivery runner (see D-07 and D-08), and the file-storage backend is an open SAD issue.
+- **Impact:** a slow mail server can delay these requests by up to 5 seconds, and a failed mail is not retried (for an e-mail change the user is told when sending failed). File checks are weaker than a real scanner (see D-05).
+- **Status:** Proposed (to be confirmed by the team)
+
+### D-10 - No screen to change a user's role
+- **Logged:** 2026-11-06
+- **Document:** SRS 2.3 (the Administrator manages users and roles) and TM-F-050; SAD, section 4.1 (AdminModule)
+- **Planned:** the Administrator can manage users and their roles.
+- **What we are doing instead:** the user-management page lets the Administrator view, disable, enable and soft-delete accounts, as TM-F-050 lists. No screen changes a user's role, and the Django admin site does not register the User model at the time of writing. New accounts get the Team Member role; other roles come from the seed data or `createsuperuser`. Deleted accounts are soft-deleted and their e-mail address stays reserved.
+- **Why:** TM-F-050 only requires view, disable and delete, and the time went to the 34 requirements.
+- **Impact:** Project Manager and Administrator accounts cannot be created from the UI. The demo uses the seeded accounts.
+- **Status:** Proposed (to be confirmed by the team)
+
+### D-11 - Audit log does not record every login
+- **Logged:** 2026-11-06
+- **Document:** SAD, section 4.2 (Sequence 1 records login success, login failure and account lock); SRS TM-F-052
+- **Planned:** security events, including successful and failed logins, appear in the audit log.
+- **What we are doing instead:** audit records exist for account lockouts, user disable/enable/delete, and task events (created, updated, deleted, restored, assignment changes). Successful logins, failed attempts below the lockout threshold, and logouts are not recorded.
+- **Why:** TM-F-003 only requires the lockout to be logged, and the audit-log story only requires actor, action, timestamp, search and immutability.
+- **Impact:** the audit log is thinner than Sequence 1 shows. TM-F-052 is still met (searchable, with actor, action and timestamp, and immutable).
+- **Status:** Proposed (to be confirmed by the team)
+
+### D-12 - Developers and testers swapped for some stories
+- **Logged:** 2026-11-06
+- **Document:** STP, section 9 (Roles and Responsibilities)
+- **Planned:** developers implement and fix defects; test engineers design and run the test cases.
+- **What we are doing instead:** for several stories the test engineers wrote the code and the developers tested it. The person who wrote a story never tests it.
+- **Why:** the work was divided this way so that every story is verified independently.
+- **Impact:** none on the requirements. Each story's issue or pull request records who built it and who tested it.
+- **Status:** Applied
+
 <!-- Copy a block above for each new deviation. -->
 
 ---
@@ -95,16 +132,16 @@ These are not deviations by themselves, because the SAD left them open. Each row
 
 | SAD open issue | Decision | Status |
 |---|---|---|
-| Database | S-01 uses SQLite. PostgreSQL 16 is defined in Docker Compose; connecting Django to PostgreSQL is deferred to S-02. | Applied |
+| Database | PostgreSQL 16, run in Docker Compose for development; the CI test job uses a `postgres:16` service. Django connects through the `DB_*` variables. | Applied |
 | Test email server | MailHog, as named in the STP | Applied |
 | Background jobs (reminders, queued e-mail) | A scheduled Django management command; no Celery | Proposed |
-| Attachment scanning | A scanner stub behind an interface (extension and size checks, EICAR test file); no real antivirus integration | Proposed |
+| Attachment scanning | A scanner stub behind an interface (extension and size checks, EICAR test file); no real antivirus integration (see D-05) | Proposed |
 | REST/JSON endpoints | Not built; server-rendered Django views only | Proposed |
 | Who can recover a soft-deleted task | The task owner | Applied |
-| Who can assign tasks | The Project Manager role, to any user | Proposed |
+| Who can assign tasks | The Project Manager role, to any active user (enforced in `TaskService`) | Applied |
 | Who can change collaborator permissions | The task owner (per TM-F-030 and TM-F-032) | Proposed |
 | Task status values | `todo`, `in_progress`, and `done`, as agreed by Dev A and Dev B and recorded in `docs/schema.md` | Applied |
-| Password complexity policy (TM-F-001) | The SRS refers to a policy but does not define it; Dev A to define it, and the seed password must comply | Open |
+| Password complexity policy (TM-F-001) | Django's four default validators apply to registration, reset and change: minimum length 8, not a common password, not entirely numeric, not too similar to the user's details. The seed password is set directly and bypasses them. | Proposed |
 | Supported browser matrix | To be defined before UI testing | Open |
 | Monitoring, backup and at-rest encryption | Not implemented in the course build; deployment-level controls (see D-04) | Proposed |
 | Rate limiting for login and file upload | Not implemented in application code (a reverse-proxy concern). Account lockout (TM-F-003) and the 10 MB limit (TM-F-022) still apply | Proposed |
@@ -117,6 +154,7 @@ These are not deviations by themselves, because the SAD left them open. Each row
 | Item | Decision | Status |
 |---|---|---|
 | How TM-SR-001 (TLS 1.2+) is verified | HTTPS is required in production and HTTP is allowed locally; decide where TLS is demonstrated | Open |
+| Final schedule | Pull requests were still being merged after the 30-10-2026 freeze date (for example migrations generated on 2026-11-02 and 2026-11-05). Record the agreed final dates in D-01 and D-02, or log the overrun as a deviation | Open |
 
 ---
 

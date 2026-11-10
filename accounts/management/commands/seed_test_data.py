@@ -1,8 +1,8 @@
-﻿"""Seed the dev/test database with the three test accounts and sample tasks (S-07b).
+"""Seed the dev/test database with the three test accounts and sample tasks (S-07b).
 
 Usage: python manage.py seed_test_data
 
-- Accounts and password match SETUP.md.
+- Accounts and password match README.md.
 - One sample task per status, read from Task.Status (not hard-coded).
 - Safe to run twice: existing rows are updated, not duplicated.
 - Refuses to run outside the dev/test settings.
@@ -15,7 +15,7 @@ from django.core.management.base import BaseCommand, CommandError
 from django.utils import timezone
 
 from accounts.models import User
-from tasks.models import Task, TaskAssignment
+from tasks.models import Label, Task, TaskAssignment
 
 SEED_PASSWORD = "SEPROG123"
 ALLOWED_SETTINGS = {"dev", "test"}
@@ -25,6 +25,10 @@ ACCOUNTS = [
     ("pm@example.com", User.Role.PROJECT_MANAGER),
     ("admin@example.com", User.Role.ADMIN),
 ]
+
+
+# Sample labels for TC-Org-01; the last one is archived to show it is hidden at task creation.
+LABELS = [("Bug", False), ("Feature", False), ("Documentation", False), ("Legacy", True)]
 
 
 class Command(BaseCommand):
@@ -89,10 +93,15 @@ class Command(BaseCommand):
             task=assigned, user=member, defaults={"assigned_by": manager}
         )
 
+        for name, archived in LABELS:
+            Label.objects.update_or_create(
+                name__iexact=name, defaults={"name": name, "is_archived": archived}
+            )
+
         self.stdout.write(
             self.style.SUCCESS(
                 f"Seeded {len(ACCOUNTS)} accounts and "
-                f"{Task.objects.active().count()} active tasks "
+                f"{Task.objects.active().count()} active tasks and {len(LABELS)} labels "
                 f"(password for all test accounts: {SEED_PASSWORD})."
             )
         )

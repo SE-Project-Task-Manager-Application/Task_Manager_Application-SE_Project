@@ -5,7 +5,7 @@ import itertools
 import pytest
 from django.contrib.auth import get_user_model
 
-TEST_PASSWORD = "SEPROG123"  # same test-only password as SETUP.md
+TEST_PASSWORD = "SEPROG123"  # same test-only password as README.md
 
 
 @pytest.fixture

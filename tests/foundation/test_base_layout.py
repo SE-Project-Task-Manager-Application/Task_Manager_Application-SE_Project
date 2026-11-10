@@ -25,7 +25,8 @@ def nav_urls(settings):
         path("tasks/", include(([path("", _stub_view, name="list"),
                                  path("new/", _stub_view, name="create")], "tasks"))),
         path("dash/", include(([path("", _stub_view, name="index")], "dash"))),
-        path("manage/", include(([path("", _stub_view, name="index")], "adminpanel"))),
+        path("manage/", include(([path("", _stub_view, name="index"),
+                                 path("audit/", _stub_view, name="audit_log")], "adminpanel"))),
         path("acct/", include(([path("login/", _stub_view, name="login"),
                                 path("logout/", _stub_view, name="logout")], "accounts"))),
     ]
@@ -67,6 +68,9 @@ def test_only_admin_sees_administration(nav_urls):
     assert "Administration" in _labels("admin")
     assert "Administration" not in _labels("member")
     assert "Administration" not in _labels("project_manager")
+    assert "Audit log" in _labels("admin")
+    assert "Audit log" not in _labels("member")
+    assert "Audit log" not in _labels("project_manager")
 
 
 def test_guest_sees_only_login(nav_urls):
@@ -76,9 +80,16 @@ def test_guest_sees_only_login(nav_urls):
     assert labels == ["Log in"]  # "Register" is skipped: no such URL name yet
 
 
-def test_menu_skips_entries_whose_pages_do_not_exist():
-    # Without the stub URLconf, none of the optional menu URL names exist.
-    assert [i for i in _items("admin") if i["label"] == "Administration"] == []
+def test_menu_skips_entries_whose_pages_do_not_exist(settings):
+    # Use a URLconf without the admin route even though the real app now defines it.
+    module = types.ModuleType("nav_urls_without_admin")
+    module.urlpatterns = []
+    sys.modules[module.__name__] = module
+    settings.ROOT_URLCONF = module.__name__
+    try:
+        assert [i for i in _items("admin") if i["label"] == "Administration"] == []
+    finally:
+        del sys.modules[module.__name__]
 
 
 def test_current_page_is_marked(nav_urls):
