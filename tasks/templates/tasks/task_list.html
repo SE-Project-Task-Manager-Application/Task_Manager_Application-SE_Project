@@ -74,6 +74,24 @@
               <td>{% for person in task.assignees.all %}{{ person.email }}{% if not forloop.last %}, {% endif %}{% empty %}&ndash;{% endfor %}</td>
               <td>{% for label in task.labels.all %}<span class="chip">{{ label.name }}</span>{% empty %}&ndash;{% endfor %}</td>
               <td>
+                {% if not task.is_deleted %}
+                  <details>
+                    <summary>Attachments</summary>
+                    {% for attachment in task.attachments.all %}
+                      <a href="{% url 'storage:download' attachment.pk %}">{{ attachment.original_name }}</a><br>
+                    {% empty %}
+                      <span>No attachments</span>
+                    {% endfor %}
+                    {% if task.owner_id == request.user.pk or request.user in task.assignees.all %}
+                      <form method="post" enctype="multipart/form-data" action="{% url 'storage:upload' task.pk %}">
+                        {% csrf_token %}
+                        <label for="attachment-{{ task.pk }}">Add file</label>
+                        <input id="attachment-{{ task.pk }}" type="file" name="file" required>
+                        <button type="submit">Upload</button>
+                      </form>
+                    {% endif %}
+                  </details>
+                {% endif %}
                 {% if task.is_deleted %}
                   {% if task.owner_id == request.user.pk %}
                     <form method="post" action="{% url 'tasks:restore' task.pk %}">

@@ -9,6 +9,22 @@ from django.db import models
 from django.utils import timezone
 
 
+class SystemConfig(models.Model):
+    """The single database-backed system configuration record."""
+
+    password_min_length = models.PositiveSmallIntegerField(default=8)
+    session_timeout_seconds = models.PositiveIntegerField(default=86400)
+    notifications_enabled = models.BooleanField(default=True)
+    notification_sender = models.EmailField(default="no-reply@example.com")
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "system configuration"
+
+    def __str__(self):
+        return "System configuration"
+
+
 class AuditImmutableError(Exception):
     """Raised on any attempt to modify or delete an audit record."""
 

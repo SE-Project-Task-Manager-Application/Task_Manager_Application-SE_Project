@@ -30,7 +30,9 @@ class TaskListView(LoginRequiredMixin, ListView):
         queryset = Task.objects.deleted() if show == "deleted" else Task.objects.active()
         queryset = queryset.filter(Q(owner=user) | Q(assignments__user=user))
         queryset = (
-            queryset.select_related("owner").prefetch_related("labels", "assignees").distinct()
+            queryset.select_related("owner")
+            .prefetch_related("labels", "assignees", "attachments")
+            .distinct()
         )
         query = self.request.GET.get("q", "").strip()
         if query:

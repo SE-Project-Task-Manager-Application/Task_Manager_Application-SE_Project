@@ -11,7 +11,8 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_GET, require_POST
 
-from .models import AuditRecord
+from .forms import SystemConfigForm
+from .models import AuditRecord, SystemConfig
 from .services import AuditService
 
 
@@ -129,3 +130,38 @@ def delete_user(request, user_id):
 
     messages.success(request, f"{user.email} has been deleted.")
     return redirect("adminpanel:user_list")
+
+
+@require_GET
+@admin_required
+def system_config(request):
+    config = SystemConfig.objects.first() or SystemConfig.objects.create()
+    return render(
+        request,
+        "adminpanel/system_config.html",
+        {"form": SystemConfigForm(instance=config)},
+    )
+
+
+@require_POST
+@admin_required
+def update_system_config(request):
+    config = SystemConfig.objects.first() or SystemConfig.objects.create()
+    form = SystemConfigForm(request.POST, instance=config)
+    if form.is_valid():
+        with transaction.atomic():
+            config = form.save()
+            AuditService.record(
+                actor=request.user,
+                action="system_config.updated",
+                target=("system_config", config.pk),
+                details={
+                    "password_min_length": config.password_min_length,
+                    "session_timeout_seconds": config.session_timeout_seconds,
+                    "notifications_enabled": config.notifications_enabled,
+                    "notification_sender": config.notification_sender,
+                },
+            )
+        messages.success(request, "System configuration updated.")
+        return redirect("adminpanel:system_config")
+    return render(request, "adminpanel/system_config.html", {"form": form}, status=400)

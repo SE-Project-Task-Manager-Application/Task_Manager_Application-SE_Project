@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}System configuration{% endblock %}
+{% block content %}
+  <h1>System configuration</h1>
+  <form method="post" action="{% url 'adminpanel:update_system_config' %}">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit">Save configuration</button>
+  </form>
+{% endblock %}

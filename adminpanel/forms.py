@@ -1,0 +1,30 @@
+from django import forms
+
+from .models import SystemConfig
+
+
+class SystemConfigForm(forms.ModelForm):
+    class Meta:
+        model = SystemConfig
+        fields = (
+            "password_min_length",
+            "session_timeout_seconds",
+            "notifications_enabled",
+            "notification_sender",
+        )
+        help_texts = {
+            "password_min_length": "Minimum length for newly chosen passwords.",
+            "session_timeout_seconds": "Session inactivity timeout in seconds.",
+        }
+
+    def clean_password_min_length(self):
+        value = self.cleaned_data["password_min_length"]
+        if value < 8 or value > 256:
+            raise forms.ValidationError("Password length must be between 8 and 256.")
+        return value
+
+    def clean_session_timeout_seconds(self):
+        value = self.cleaned_data["session_timeout_seconds"]
+        if value < 300 or value > 2592000:
+            raise forms.ValidationError("Session timeout must be between 5 minutes and 30 days.")
+        return value

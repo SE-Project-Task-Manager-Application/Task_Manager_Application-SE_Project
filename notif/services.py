@@ -26,6 +26,8 @@ from dataclasses import dataclass, field
 from django.conf import settings
 from django.core.mail import send_mail
 
+from adminpanel.models import SystemConfig
+
 logger = logging.getLogger(__name__)
 
 _pending = deque()
@@ -66,11 +68,20 @@ class NotificationService:
         if not recipient_email:
             logger.warning("notification skipped kind=%s: recipient has no e-mail", event.kind)
             return False
+        config = SystemConfig.objects.first()
+        if config and not config.notifications_enabled:
+            logger.info("notification disabled kind=%s", event.kind)
+            return False
         try:
+            sender = (
+                config.notification_sender
+                if config and config.notification_sender
+                else getattr(settings, "DEFAULT_FROM_EMAIL", None)
+            )
             send_mail(
                 event.subject,
                 event.body,
-                getattr(settings, "DEFAULT_FROM_EMAIL", None),
+                sender,
                 [recipient_email],
                 fail_silently=False,
             )
