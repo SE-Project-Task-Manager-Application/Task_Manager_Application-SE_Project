@@ -68,8 +68,8 @@ def test_password_minimum_setting_is_enforced(make_user):
         user,
         {
             "old_password": "SEPROG123",
-            "new_password1": "long-enough1",
-            "new_password2": "long-enough1",
+            "new_password1": "twelve-char1!",
+            "new_password2": "twelve-char1!",
         },
     )
 

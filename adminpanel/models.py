@@ -5,6 +5,7 @@ existing row, delete(), and the queryset update()/delete()/bulk_update() all rai
 """
 
 from django.conf import settings
+from django.core.cache import cache
 from django.db import models
 from django.utils import timezone
 
@@ -29,6 +30,10 @@ class SystemConfig(models.Model):
 
     def __str__(self):
         return "System configuration"
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        cache.delete("adminpanel.system_config")
 
 
 class AuditImmutableError(Exception):
