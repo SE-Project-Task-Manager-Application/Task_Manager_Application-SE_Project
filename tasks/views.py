@@ -1,6 +1,5 @@
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.db.models import Q
 from django.shortcuts import redirect
 from django.views.generic import FormView, ListView
 
@@ -18,8 +17,7 @@ class TaskListView(LoginRequiredMixin, ListView):
     def get_queryset(self):
         user = self.request.user
         return (
-            Task.objects.active()
-            .filter(Q(owner=user) | Q(assignments__user=user) | Q(shares__user=user))
+            Task.objects.active().visible_to(user)
             .select_related("owner")
             .prefetch_related("labels", "assignees", "shares__user")
             .distinct()

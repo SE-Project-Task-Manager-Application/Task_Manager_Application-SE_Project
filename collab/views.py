@@ -13,7 +13,9 @@ from .services import TaskShareService
 
 class TaskShareView(LoginRequiredMixin, View):
     def post(self, request, task_id):
-        task = get_object_or_404(Task.objects.active(), pk=task_id)
+        # Use the same visibility scope as the task list to avoid revealing whether
+        # another user's task ID exists. Visible non-owners still receive 403.
+        task = get_object_or_404(Task.objects.active().visible_to(request.user), pk=task_id)
         if task.owner_id != request.user.pk:
             return HttpResponseForbidden("Only the task owner can share this task.")
 

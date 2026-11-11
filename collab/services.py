@@ -30,14 +30,21 @@ class TaskShareService:
         if permission not in TaskShare.Permission.values:
             raise ValidationError("Choose Viewer or Editor access.")
 
-        share, created = TaskShare.objects.update_or_create(
-            task=task, user=user,
+        share, created = TaskShare.objects.get_or_create(
+            task=task,
+            user=user,
             defaults={"permission": permission, "shared_by": actor},
         )
-        AuditService.record(
-            actor,
-            "task.shared" if created else "task.share_updated",
-            task,
-            details={"user_id": user.pk, "permission": permission},
-        )
+        changed = created or share.permission != permission
+        if changed and not created:
+            share.permission = permission
+            share.shared_by = actor
+            share.save(update_fields=["permission", "shared_by"])
+        if changed:
+            AuditService.record(
+                actor,
+                "task.shared" if created else "task.share_updated",
+                task,
+                details={"user_id": user.pk, "permission": permission},
+            )
         return share
