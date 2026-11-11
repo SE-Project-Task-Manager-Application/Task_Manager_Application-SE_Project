@@ -179,3 +179,29 @@ def test_anonymous_user_is_sent_to_login(client):
     response = client.get(reverse(LIST_URL))
     assert response.status_code == 302
     assert reverse("accounts:login") in response["Location"]
+
+
+def test_row_controls_have_distinct_accessible_names(admin_client):
+    Label.objects.create(name="Bug")
+    Label.objects.create(name="Legacy", is_archived=True)
+    html = admin_client.get(reverse(LIST_URL)).content.decode()
+    assert 'aria-label="Rename Bug"' in html
+    assert 'aria-label="Archive Bug"' in html
+    assert 'aria-label="Rename Legacy"' in html
+    assert 'aria-label="Restore Legacy"' in html
+
+
+def test_category_forms_include_a_csrf_token(make_user):
+    label = Label.objects.create(name="Bug")
+    csrf_client = Client(enforce_csrf_checks=True)
+    csrf_client.force_login(make_user(role="admin"))
+    for url in (reverse(LIST_URL), reverse("adminpanel:category_rename", args=[label.pk])):
+        assert 'name="csrfmiddlewaretoken"' in csrf_client.get(url).content.decode()
+
+
+def test_posting_without_a_csrf_token_is_refused(make_user):
+    csrf_client = Client(enforce_csrf_checks=True)
+    csrf_client.force_login(make_user(role="admin"))
+    response = csrf_client.post(reverse(LIST_URL), {"name": "Backend"})
+    assert response.status_code == 403
+    assert Label.objects.count() == 0
