@@ -2,7 +2,7 @@
 
 Usage: python manage.py seed_test_data
 
-- Accounts and password match SETUP.md.
+- Accounts and password match README.md.
 - One sample task per status, read from Task.Status (not hard-coded).
 - Safe to run twice: existing rows are updated, not duplicated.
 - Refuses to run outside the dev/test settings.

@@ -3,7 +3,9 @@ from functools import wraps
 from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
+from django.core.paginator import Paginator
 from django.db import transaction
+from django.db.models import Q
 from django.http import HttpResponseForbidden
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
@@ -12,6 +14,7 @@ from django.views.decorators.http import require_GET, require_http_methods, requ
 from tasks.models import Label
 
 from .forms import LabelForm
+from .models import AuditRecord
 from .services import AuditService
 
 
@@ -34,6 +37,27 @@ def admin_required(view):
 def user_list(request):
     users = User.objects.filter(deleted_at__isnull=True).order_by("email")
     return render(request, "adminpanel/user_list.html", {"users": users})
+
+
+@require_GET
+@admin_required
+def audit_log(request):
+    query = request.GET.get("q", "").strip()[:100]
+    records = AuditRecord.objects.select_related("actor").all()
+    if query:
+        records = records.filter(
+            Q(actor__email__icontains=query)
+            | Q(action__icontains=query)
+            | Q(target_type__icontains=query)
+            | Q(target_id__icontains=query)
+        )
+
+    page_obj = Paginator(records, 25).get_page(request.GET.get("page"))
+    return render(
+        request,
+        "adminpanel/audit_log.html",
+        {"page_obj": page_obj, "query": query},
+    )
 
 
 @require_POST
