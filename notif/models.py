@@ -9,6 +9,7 @@ class Notification(models.Model):
         PENDING = "pending", "Pending"
         SENT = "sent", "Sent"
         CANCELLED = "cancelled", "Cancelled"
+        FAILED = "failed", "Failed"
 
     kind = models.CharField(max_length=80)
     recipient = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
