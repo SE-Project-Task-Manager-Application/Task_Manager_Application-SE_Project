@@ -49,7 +49,9 @@ class NotificationEvent:
 class NotificationService:
     REMINDER_LEAD = timedelta(hours=24)
     MAX_DELIVERIES_PER_RUN = 5
-    MAX_ATTEMPTS = 10
+    # At the documented one-minute scheduler interval this allows up to two hours
+    # of retries before a persistently undeliverable reminder becomes terminal.
+    MAX_ATTEMPTS = 120
 
     @classmethod
     def enqueue_due_reminders(cls, now=None):

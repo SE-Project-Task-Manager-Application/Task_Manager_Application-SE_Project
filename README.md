@@ -63,18 +63,21 @@ Password for all test accounts (test only): `SEPROG123`
   `DB_HOST` and `DB_PORT` from `.env`.
 - MailHog receives e-mail on 127.0.0.1:1025. Read the captured messages in its inbox at
   http://127.0.0.1:8025/ (registration, password-reset, e-mail-change and assignment mails).
-- Task reminders are scheduled for 24 hours before the due date. A reminder becomes
-  eligible at `due_date - 24 hours` and is sent on the first run of
-  `python manage.py send_due_reminders` at or after that time. Schedule it every 15 seconds.
-  Standard cron only starts jobs once per minute, so use a scheduler with sub-minute
-  intervals or stagger four cron entries with offsets of 0, 15, 30 and 45 seconds. Each run
-  claims at most 5 due rows (at most 25 seconds at the configured five-second SMTP timeout),
-  skips rows locked by another runner, and stops after its first mail failure. With no more
-  than 10 reminders becoming due per minute, delivery is bounded to about 55 seconds after
-  `scheduled_for`. Larger bursts need additional scheduler workers to preserve the
-  one-minute target.
-  Failed sends retry on later runs and become terminally failed after 10 attempts. The
-  command is safe to repeat.
+- Task reminders have a 24-hour lead time: they become eligible at `due_date - 24 hours`.
+  Schedule `python manage.py send_due_reminders` once per minute. It queues reminders for
+  open tasks due within the next 24 hours, then sends them on the first run at or after
+  their scheduled time. If a task is created inside its 24-hour window, its reminder is
+  queued on the next run. Reminders go to every assignee; when there are no assignees, the
+  task owner receives the reminder.
+  Each run claims at most 5 due rows (at most 25 seconds at the configured five-second SMTP
+  timeout), skips rows locked by another runner, and stops after its first mail failure.
+  More than 5 due reminders in a run can spill into later runs, so larger bursts may exceed
+  the one-minute target.
+  Failed sends retry on later runs, up to 120 failed attempts. At the once-per-minute
+  schedule, that is up to two hours of retry time; after 120 failures the notification is
+  marked terminally failed and is not automatically retried. A reminder is cancelled if
+  its task is completed, deleted, rescheduled, or becomes overdue. The command is safe to
+  repeat.
 
   To exercise a real MailHog outage, first create a task due within 24 hours, then stop
   MailHog and run the command. It should report a failed send without crashing and leave

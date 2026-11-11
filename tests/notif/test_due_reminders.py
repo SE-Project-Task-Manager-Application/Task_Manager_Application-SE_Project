@@ -113,6 +113,7 @@ def test_delivery_stops_retrying_after_maximum_attempts(make_user, monkeypatch):
     NotificationService.enqueue_due_reminders(now)
     monkeypatch.setattr("notif.services.send_mail", _mail_server_down)
 
+    assert NotificationService.MAX_ATTEMPTS == 120
     for attempt in range(NotificationService.MAX_ATTEMPTS):
         assert NotificationService.deliver_scheduled(now) == (0, 1, 0)
         reminder = Notification.objects.get()
