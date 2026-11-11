@@ -1,6 +1,6 @@
 {% extends "base.html" %}
-{% block title %}New task{% endblock %}
+{% block title %}{% if task %}Edit task{% else %}New task{% endif %}{% endblock %}
 {% block content %}
-  <h1>New task</h1>
-  {% include "components/form.html" with form=form submit_label="Create task" %}
+  <h1>{% if task %}Edit task{% else %}New task{% endif %}</h1>
+  {% include "components/form.html" with form=form submit_label="Save task" %}
 {% endblock %}
