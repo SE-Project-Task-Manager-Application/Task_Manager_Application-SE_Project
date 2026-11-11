@@ -8,7 +8,7 @@ from django.utils.dateparse import parse_date
 from django.views.decorators.http import require_POST
 from django.views.generic import FormView, ListView, UpdateView
 
-from accounts.services import require_task_permission
+from accounts.services import can_edit_task, require_task_permission
 
 from .forms import TaskCreateForm, TaskForm
 from .models import Label, Task
@@ -64,6 +64,9 @@ class TaskListView(LoginRequiredMixin, ListView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["labels"] = Label.objects.order_by("name")
+        context["editable_task_ids"] = {
+            task.pk for task in context["tasks"] if can_edit_task(self.request.user, task)
+        }
         context["sort_choices"] = (
             ("created_at", "Created"),
             ("updated_at", "Updated"),

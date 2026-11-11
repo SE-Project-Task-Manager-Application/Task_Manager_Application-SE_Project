@@ -20,6 +20,12 @@ class SystemConfig(models.Model):
 
     class Meta:
         verbose_name = "system configuration"
+        constraints = [
+            models.CheckConstraint(
+                condition=models.Q(pk=1),
+                name="system_config_singleton",
+            ),
+        ]
 
     def __str__(self):
         return "System configuration"

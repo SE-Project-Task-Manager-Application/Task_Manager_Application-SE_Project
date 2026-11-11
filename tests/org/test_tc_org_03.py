@@ -44,3 +44,36 @@ def test_attachment_rejects_oversize_and_eicar(client, make_user):
     infected = SimpleUploadedFile("virus.txt", marker)
     client.post(reverse("storage:upload", args=[task.pk]), {"file": infected})
     assert not TaskAttachment.objects.exists()
+
+
+def test_other_user_cannot_upload_or_download_attachment(client, make_user):
+    owner = make_user()
+    other = make_user()
+    task = Task.objects.create(owner=owner, title="Task")
+    client.force_login(owner)
+    upload = SimpleUploadedFile("notes.txt", b"hello", content_type="text/plain")
+    client.post(reverse("storage:upload", args=[task.pk]), {"file": upload})
+    attachment = TaskAttachment.objects.get(task=task)
+
+    client.force_login(other)
+    response = client.post(
+        reverse("storage:upload", args=[task.pk]),
+        {"file": SimpleUploadedFile("other.txt", b"no")},
+    )
+    assert response.status_code == 403
+    response = client.get(reverse("storage:download", args=[attachment.pk]))
+    assert response.status_code == 403
+
+
+def test_attachment_rejects_disallowed_extension(client, make_user):
+    owner = make_user()
+    task = Task.objects.create(owner=owner, title="Task")
+    client.force_login(owner)
+
+    response = client.post(
+        reverse("storage:upload", args=[task.pk]),
+        {"file": SimpleUploadedFile("malware.exe", b"no")},
+    )
+
+    assert response.status_code == 302
+    assert not TaskAttachment.objects.exists()

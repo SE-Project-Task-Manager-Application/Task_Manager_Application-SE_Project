@@ -27,7 +27,7 @@
 |  | `created_at` | When the action happened. |
 |  | `details` | Optional information about the change, such as the old and new status or the assigned user. Never include passwords, tokens, or other secrets. |
 | **System config** | `password_min_length` | Minimum length required for newly chosen passwords. |
-|  | `session_timeout_seconds` | Inactivity timeout applied to authenticated sessions. |
+|  | `session_timeout_seconds` | Inactivity timeout applied to authenticated sessions, capped at 86,400 seconds (24 hours). |
 |  | `notifications_enabled` / `notification_sender` | Database-controlled notification defaults. |
 | **Task attachment** | `task` / `uploaded_by` | The task and authenticated user associated with the upload. |
 |  | `file` / `original_name` | Stored file and its original client filename. Files are limited to 10 MB, checked against an allowlist, and passed through the EICAR-detecting scanner stub before storage. |

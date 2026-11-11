@@ -1,4 +1,4 @@
-from .models import SystemConfig
+from .config import get_system_config
 
 
 class DatabaseSessionTimeoutMiddleware:
@@ -9,7 +9,5 @@ class DatabaseSessionTimeoutMiddleware:
 
     def __call__(self, request):
         if request.user.is_authenticated:
-            config = SystemConfig.objects.first()
-            if config:
-                request.session.set_expiry(config.session_timeout_seconds)
+            request.session.set_expiry(get_system_config().session_timeout_seconds)
         return self.get_response(request)

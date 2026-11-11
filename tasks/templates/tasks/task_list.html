@@ -82,7 +82,7 @@
                     {% empty %}
                       <span>No attachments</span>
                     {% endfor %}
-                    {% if task.owner_id == request.user.pk or request.user in task.assignees.all %}
+                    {% if task.pk in editable_task_ids %}
                       <form method="post" enctype="multipart/form-data" action="{% url 'storage:upload' task.pk %}">
                         {% csrf_token %}
                         <label for="attachment-{{ task.pk }}">Add file</label>

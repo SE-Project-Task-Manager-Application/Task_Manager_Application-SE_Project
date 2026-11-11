@@ -25,6 +25,6 @@ class SystemConfigForm(forms.ModelForm):
 
     def clean_session_timeout_seconds(self):
         value = self.cleaned_data["session_timeout_seconds"]
-        if value < 300 or value > 2592000:
-            raise forms.ValidationError("Session timeout must be between 5 minutes and 30 days.")
+        if value < 300 or value > 86400:
+            raise forms.ValidationError("Session timeout must be between 5 minutes and 24 hours.")
         return value

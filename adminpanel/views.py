@@ -12,7 +12,8 @@ from django.utils import timezone
 from django.views.decorators.http import require_GET, require_POST
 
 from .forms import SystemConfigForm
-from .models import AuditRecord, SystemConfig
+from .config import clear_system_config_cache, get_system_config
+from .models import AuditRecord
 from .services import AuditService
 
 
@@ -135,7 +136,7 @@ def delete_user(request, user_id):
 @require_GET
 @admin_required
 def system_config(request):
-    config = SystemConfig.objects.first() or SystemConfig.objects.create()
+    config = get_system_config()
     return render(
         request,
         "adminpanel/system_config.html",
@@ -146,11 +147,12 @@ def system_config(request):
 @require_POST
 @admin_required
 def update_system_config(request):
-    config = SystemConfig.objects.first() or SystemConfig.objects.create()
+    config = get_system_config()
     form = SystemConfigForm(request.POST, instance=config)
     if form.is_valid():
         with transaction.atomic():
             config = form.save()
+            clear_system_config_cache()
             AuditService.record(
                 actor=request.user,
                 action="system_config.updated",
