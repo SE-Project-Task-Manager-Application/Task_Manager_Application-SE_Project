@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Comments: {{ task.title }}{% endblock %}
+{% block content %}
+  <p><a href="{% url 'tasks:list' %}">Back to tasks</a></p>
+  <h1>Comments: {{ task.title }}</h1>
+
+  <section aria-labelledby="comments-heading">
+    <h2 id="comments-heading">{{ comments|length }} comment{{ comments|length|pluralize }}</h2>
+    {% if comments %}
+      <ol class="comment-list">
+        {% for comment in comments %}
+          <li class="comment" id="comment-{{ comment.pk }}">
+            <p class="comment__meta">
+              <strong>{{ comment.author.email }}</strong>
+              <time datetime="{{ comment.created_at|date:'c' }}">{{ comment.created_at|date:"Y-m-d H:i" }} UTC</time>
+            </p>
+            <p class="comment__body">{{ comment.body|linebreaksbr }}</p>
+          </li>
+        {% endfor %}
+      </ol>
+    {% else %}
+      <p>No comments yet.</p>
+    {% endif %}
+  </section>
+
+  <section aria-labelledby="add-comment-heading">
+    <h2 id="add-comment-heading">Add a comment</h2>
+    {% include "components/form.html" with form=form submit_label="Post comment" %}
+  </section>
+{% endblock %}

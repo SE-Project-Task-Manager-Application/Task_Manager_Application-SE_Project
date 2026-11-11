@@ -83,6 +83,7 @@
                   {% endif %}
                 {% else %}
                   <a href="{% url 'tasks:edit' task.pk %}">Edit</a>
+                  <a href="{% url 'collab:task_comments' task.pk %}">Comments<span class="visually-hidden"> on {{ task.title }}</span></a>
                   {% if task.status == "done" %}
                   <form method="post" action="{% url 'tasks:reopen' task.pk %}">
                     {% csrf_token %}<input type="hidden" name="expected_version" value="{{ task.version }}">
