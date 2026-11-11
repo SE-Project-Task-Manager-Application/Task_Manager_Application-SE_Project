@@ -10,6 +10,7 @@ Deliberate points:
 
 from django.conf import settings
 from django.db import models
+from django.db.models import Q
 from django.db.models.functions import Lower
 from django.utils import timezone
 
@@ -38,6 +39,32 @@ class TaskQuerySet(models.QuerySet):
     def deleted(self):
         """Soft-deleted tasks (kept for recovery)."""
         return self.filter(deleted_at__isnull=False)
+
+    def visible_to(self, user):
+        """Tasks a user may see as owner, assignee, or share recipient."""
+        if (
+            not getattr(user, "is_authenticated", False)
+            or not getattr(user, "is_active", False)
+            or getattr(user, "deleted_at", None)
+        ):
+            return self.none()
+        return self.filter(
+            Q(owner=user) | Q(assignments__user=user) | Q(shares__user=user)
+        ).distinct()
+
+    def editable_by(self, user):
+        """Tasks a user may edit as owner, assignee, or Editor share recipient."""
+        if (
+            not getattr(user, "is_authenticated", False)
+            or not getattr(user, "is_active", False)
+            or getattr(user, "deleted_at", None)
+        ):
+            return self.none()
+        return self.filter(
+            Q(owner=user)
+            | Q(assignments__user=user)
+            | Q(shares__user=user, shares__permission="editor")
+        ).distinct()
 
 
 class Task(models.Model):

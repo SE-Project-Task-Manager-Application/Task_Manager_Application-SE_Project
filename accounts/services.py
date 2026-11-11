@@ -15,13 +15,17 @@ def _active(user):
 def can_view_task(actor, task):
     if not _active(actor):
         return False
-    if task.owner_id == actor.pk:
-        return True
-    return task.assignments.filter(user_id=actor.pk).exists()
+    from tasks.models import Task
+
+    return Task.objects.visible_to(actor).filter(pk=task.pk).exists()
 
 
 def can_edit_task(actor, task):
-    return can_view_task(actor, task)
+    if not _active(actor):
+        return False
+    from tasks.models import Task
+
+    return Task.objects.editable_by(actor).filter(pk=task.pk).exists()
 
 
 def can_delete_task(actor, task):
