@@ -122,6 +122,15 @@ The submitted documents are the baseline and are not edited after submission. Ev
 - **Impact:** none on the requirements. Each story's issue or pull request records who built it and who tested it.
 - **Status:** Applied
 
+### D-13 - Category restore action
+- **Logged:** 2026-11-11
+- **Document:** SRS 4.6, TM-F-051 (Manage categories)
+- **Planned:** the Administrator can create, rename or archive global categories.
+- **What we are doing instead:** the same, plus a Restore action that makes an archived category active again. Restoring writes a `label.restored` audit record. No screen deletes a category.
+- **Why:** archiving with no way back would be a dead end for administrators.
+- **Impact:** none on the acceptance criteria (archived categories still do not appear when creating a task). One extra action and one extra audit action name, both covered by TC-Admin-02 (PR #77).
+- **Status:** Applied
+
 <!-- Copy a block above for each new deviation. -->
 
 ---
