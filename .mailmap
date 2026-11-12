@@ -1,0 +1,6 @@
+# Map incorrect author/committer identities used on Spoorthi's commits to her
+# verified GitHub account email. Every mapped address below appears only on her
+# own commits (verified against full repo history); no teammate identity changes.
+Spoorthi A N <222639344+sp0-0rthi@users.noreply.github.com> <spoorthi@users.noreply.github.com>
+Spoorthi A N <222639344+sp0-0rthi@users.noreply.github.com> sp0-0rthi <x@x>
+Spoorthi A N <222639344+sp0-0rthi@users.noreply.github.com> <spoorthi@example.com>
