@@ -9,6 +9,7 @@ from tasks.models import Task
 
 from .forms import TaskShareForm
 from .services import TaskShareService
+from .models import TaskShare
 
 
 class TaskShareView(LoginRequiredMixin, View):
@@ -39,4 +40,21 @@ class TaskShareView(LoginRequiredMixin, View):
             request,
             f"Task shared with {form.user.email} as {form.cleaned_data['permission']}.",
         )
+        return redirect("tasks:list")
+
+
+class TaskShareRevokeView(LoginRequiredMixin, View):
+    def post(self, request, task_id, share_id):
+        # Keep deleted tasks in scope so owners can revoke access at any time.
+        task = get_object_or_404(Task.objects.filter(owner=request.user), pk=task_id)
+        share = get_object_or_404(TaskShare, pk=share_id, task=task)
+        try:
+            revoked = TaskShareService.revoke(task, share.user, request.user)
+        except PermissionDenied:
+            return HttpResponseForbidden("Only an active task owner can revoke task access.")
+
+        if revoked:
+            messages.success(request, f"Access revoked for {share.user.email}.")
+        else:
+            messages.info(request, "That collaborator no longer has access.")
         return redirect("tasks:list")

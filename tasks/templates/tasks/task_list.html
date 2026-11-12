@@ -82,7 +82,14 @@
                   {% if user in task.assignees.all %}<strong>Assignee</strong>{% endif %}
                 {% endif %}
                 {% if task.owner_id == user.id %}
-                  {% for share in task.shares.all %}<div>{{ share.user.email }}: {{ share.get_permission_display }}</div>{% endfor %}
+                  {% for share in task.shares.all %}
+                    <div>{{ share.user.email }}: {{ share.get_permission_display }}
+                      <form method="post" action="{% url 'tasks:revoke_share' task.id share.id %}">
+                        {% csrf_token %}
+                        <button type="submit" aria-label="Revoke access for {{ share.user.email }}">Revoke access</button>
+                      </form>
+                    </div>
+                  {% endfor %}
                   {% if not task.is_deleted %}<details>
                     <summary aria-label="Share {{ task.title }}">Share task</summary>
                     <form method="post" action="{% url 'tasks:share' task.id %}">

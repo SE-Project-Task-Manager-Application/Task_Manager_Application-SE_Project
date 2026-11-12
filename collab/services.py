@@ -48,3 +48,26 @@ class TaskShareService:
                 details={"user_id": user.pk, "permission": permission},
             )
         return share
+
+    @staticmethod
+    @transaction.atomic
+    def revoke(task, user, actor):
+        """Remove a collaborator's access. Only the active task owner can revoke."""
+        if not _active(actor):
+            raise PermissionDenied("Only an active task owner can revoke task access.")
+        task = Task.objects.select_for_update().get(pk=task.pk)
+        if task.owner_id != actor.pk:
+            raise PermissionDenied("Only the task owner can revoke task access.")
+
+        share = TaskShare.objects.select_for_update().filter(task=task, user=user).first()
+        if share is None:
+            return False
+
+        AuditService.record(
+            actor,
+            "task.share_revoked",
+            task,
+            details={"user_id": user.pk, "permission": share.permission},
+        )
+        share.delete()
+        return True
