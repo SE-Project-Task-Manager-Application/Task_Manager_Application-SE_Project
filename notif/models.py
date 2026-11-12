@@ -1,4 +1,4 @@
-"""Durable notification delivery state."""
+"""Persisted e-mail notifications, including scheduled task reminders."""
 
 from django.conf import settings
 from django.db import models
@@ -9,14 +9,12 @@ class Notification(models.Model):
         PENDING = "pending", "Pending"
         SENT = "sent", "Sent"
         CANCELLED = "cancelled", "Cancelled"
+        FAILED = "failed", "Failed"
 
     kind = models.CharField(max_length=80)
     recipient = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     task = models.ForeignKey(
-        "tasks.Task",
-        null=True,
-        blank=True,
-        on_delete=models.CASCADE,
+        "tasks.Task", null=True, blank=True, on_delete=models.CASCADE,
         related_name="notifications",
     )
     task_due_date = models.DateTimeField(null=True, blank=True)

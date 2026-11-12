@@ -6,75 +6,37 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
+
     initial = True
 
     dependencies = [
-        ("tasks", "0001_initial"),
+        ('tasks', '0001_initial'),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
     operations = [
         migrations.CreateModel(
-            name="Notification",
+            name='Notification',
             fields=[
-                (
-                    "id",
-                    models.BigAutoField(
-                        auto_created=True, primary_key=True, serialize=False, verbose_name="ID"
-                    ),
-                ),
-                ("kind", models.CharField(max_length=80)),
-                ("task_due_date", models.DateTimeField(blank=True, null=True)),
-                ("subject", models.CharField(max_length=200)),
-                ("body", models.TextField()),
-                ("scheduled_for", models.DateTimeField()),
-                (
-                    "status",
-                    models.CharField(
-                        choices=[
-                            ("pending", "Pending"),
-                            ("sent", "Sent"),
-                            ("cancelled", "Cancelled"),
-                        ],
-                        default="pending",
-                        max_length=12,
-                    ),
-                ),
-                ("attempts", models.PositiveIntegerField(default=0)),
-                ("last_attempt_at", models.DateTimeField(blank=True, null=True)),
-                ("sent_at", models.DateTimeField(blank=True, null=True)),
-                ("last_error", models.CharField(blank=True, max_length=80)),
-                ("created_at", models.DateTimeField(auto_now_add=True)),
-                (
-                    "recipient",
-                    models.ForeignKey(
-                        on_delete=django.db.models.deletion.CASCADE, to=settings.AUTH_USER_MODEL
-                    ),
-                ),
-                (
-                    "task",
-                    models.ForeignKey(
-                        blank=True,
-                        null=True,
-                        on_delete=django.db.models.deletion.CASCADE,
-                        related_name="notifications",
-                        to="tasks.task",
-                    ),
-                ),
+                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                ('kind', models.CharField(max_length=80)),
+                ('task_due_date', models.DateTimeField(blank=True, null=True)),
+                ('subject', models.CharField(max_length=200)),
+                ('body', models.TextField()),
+                ('scheduled_for', models.DateTimeField()),
+                ('status', models.CharField(choices=[('pending', 'Pending'), ('sent', 'Sent'), ('cancelled', 'Cancelled')], default='pending', max_length=12)),
+                ('attempts', models.PositiveIntegerField(default=0)),
+                ('last_attempt_at', models.DateTimeField(blank=True, null=True)),
+                ('sent_at', models.DateTimeField(blank=True, null=True)),
+                ('last_error', models.CharField(blank=True, max_length=80)),
+                ('created_at', models.DateTimeField(auto_now_add=True)),
+                ('recipient', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to=settings.AUTH_USER_MODEL)),
+                ('task', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='notifications', to='tasks.task')),
             ],
             options={
-                "ordering": ["scheduled_for", "id"],
-                "indexes": [
-                    models.Index(
-                        fields=["status", "scheduled_for"], name="notif_notif_status_c5fde3_idx"
-                    )
-                ],
-                "constraints": [
-                    models.UniqueConstraint(
-                        fields=("task", "recipient", "kind", "task_due_date"),
-                        name="unique_task_reminder_per_due_date",
-                    )
-                ],
+                'ordering': ['scheduled_for', 'id'],
+                'indexes': [models.Index(fields=['status', 'scheduled_for'], name='notif_notif_status_c5fde3_idx')],
+                'constraints': [models.UniqueConstraint(fields=('task', 'recipient', 'kind', 'task_due_date'), name='unique_task_reminder_per_due_date')],
             },
         ),
     ]
