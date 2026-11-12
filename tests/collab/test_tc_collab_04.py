@@ -12,7 +12,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from adminpanel.models import AuditRecord
-from collab.models import COMMENT_MAX_LENGTH, Comment
+from collab.models import COMMENT_MAX_LENGTH, Comment, TaskShare
 from collab.services import CommentService
 from tasks.models import Task, TaskAssignment
 
@@ -169,3 +169,37 @@ def test_task_list_links_to_comments(client, people):
     client.force_login(owner)
     html = client.get(reverse("tasks:list")).content.decode()
     assert _url(task) in html
+
+
+@pytest.mark.parametrize("permission", ["viewer", "editor"])
+def test_shared_user_can_read_and_add_comments(client, people, make_user, permission):
+    """TM-F-030 + TM-F-033: Viewers and Editors have access, so both can comment."""
+    task, owner, _, _ = people
+    collaborator = make_user()
+    TaskShare.objects.create(task=task, user=collaborator, permission=permission, shared_by=owner)
+    CommentService.add(owner, task, "Owner's note")
+    client.force_login(collaborator)
+
+    page = client.get(_url(task))
+    assert page.status_code == 200
+    assert "Owner's note" in page.content.decode().replace("&#x27;", "'")
+
+    response = client.post(_url(task), {"body": f"Reply from {permission}"})
+    assert response.status_code == 302
+    comment = Comment.objects.get(author=collaborator)
+    assert comment.body == f"Reply from {permission}"
+
+    client.force_login(owner)
+    assert f"Reply from {permission}" in client.get(_url(task)).content.decode()
+
+
+def test_viewer_sees_comments_link_but_not_edit(client, people, make_user):
+    task, owner, _, _ = people
+    viewer = make_user()
+    TaskShare.objects.create(
+        task=task, user=viewer, permission=TaskShare.Permission.VIEWER, shared_by=owner
+    )
+    client.force_login(viewer)
+    html = client.get(reverse("tasks:list")).content.decode()
+    assert _url(task) in html
+    assert reverse("tasks:edit", args=[task.pk]) not in html

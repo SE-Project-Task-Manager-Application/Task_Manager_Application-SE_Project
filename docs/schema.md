@@ -25,6 +25,10 @@
 |  | `user` | Reference to an assigned user. A task may have multiple assignment records, so it can have multiple assignees. |
 |  | `assigned_by` | User who made the assignment. |
 |  | `assigned_at` | When the assignment was made. |
+| **Task share** | `task` | Reference to the task shared by its owner. |
+|  | `user` | User who receives access to the task. |
+|  | `permission` | `viewer` or `editor`; one share per task and user. |
+|  | `shared_by` / `shared_at` | Owner who granted the share and when it was first granted. Later permission changes are timestamped in the audit record; soft-deleting the owner preserves the share and its owner reference. |
 | **Audit record** | `actor` | User who performed the action; may be empty for a system action. |
 |  | `action` | Stable action name, such as `task.created`, `task.status_changed`, or `task.assignee_added`. |
 |  | `target_type` / `target_id` | The kind of record affected and its identifier, such as `task` and `42`. |
@@ -32,3 +36,9 @@
 |  | `details` | Optional information about the change, such as the old and new status or the assigned user. Never include passwords, tokens, or other secrets. |
 | **Label** | `name` | Required; unique ignoring upper/lower case. |
 |  | `is_archived` | Archived labels are not offered when creating a task (TM-F-051). |
+
+### Task access
+
+Owners and assignees can view and edit a task. A Viewer share grants view access only; an Editor
+share grants view and edit access. Only the owner can create or change shares. Soft-deleting an
+account disables that account but preserves its task shares and audit references.

@@ -1,34 +1,26 @@
-<!doctype html>
-<html lang="en">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Create an account</title>
-</head>
-<body>
-    <main>
-        <h1>Create an account</h1>
+{% extends "base.html" %}
+{% block title %}Register{% endblock %}
+{% block content %}
+  <h1>Create an account</h1>
 
-        <form method="post">
-            {% csrf_token %}
+  <form method="post" class="form">
+    {% csrf_token %}
 
-            {{ form.non_field_errors }}
+    {{ form.non_field_errors }}
 
-            {% for field in form %}
-                <div>
-                    {{ field.label_tag }}
-                    {{ field }}
+    {% for field in form %}
+      <div class="field{% if field.field.required %} field--required{% endif %}">
+        {{ field.label_tag }}
+        {{ field }}
 
-                    {% if field.help_text %}
-                        <div>{{ field.help_text }}</div>
-                    {% endif %}
+        {% if field.help_text %}
+          <div>{{ field.help_text }}</div>
+        {% endif %}
 
-                    {{ field.errors }}
-                </div>
-            {% endfor %}
+        {{ field.errors }}
+      </div>
+    {% endfor %}
 
-            <button type="submit">Create account</button>
-        </form>
-    </main>
-</body>
-</html>
+    <button class="button" type="submit">Create account</button>
+  </form>
+{% endblock %}
