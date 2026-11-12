@@ -13,4 +13,8 @@ urlpatterns = [
     path("users/<int:user_id>/delete/", views.delete_user, name="delete_user"),
     path("config/", views.system_config, name="system_config"),
     path("config/update/", views.update_system_config, name="update_system_config"),
+    path("categories/", views.category_list, name="category_list"),
+    path("categories/<int:label_id>/rename/", views.category_rename, name="category_rename"),
+    path("categories/<int:label_id>/archive/", views.category_archive, name="category_archive"),
+    path("categories/<int:label_id>/restore/", views.category_restore, name="category_restore"),
 ]

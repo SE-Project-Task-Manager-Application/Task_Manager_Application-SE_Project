@@ -8,7 +8,7 @@ from django.utils.dateparse import parse_date
 from django.views.decorators.http import require_POST
 from django.views.generic import FormView, ListView, UpdateView
 
-from accounts.services import can_edit_task, require_task_permission
+from accounts.services import require_task_permission
 
 from .forms import TaskCreateForm, TaskForm
 from .models import Label, Task
@@ -16,7 +16,7 @@ from .services import StaleTaskError, TaskService
 
 
 class TaskListView(LoginRequiredMixin, ListView):
-    """Tasks the user owns or is assigned to (sharing is added by the collab stories)."""
+    """Tasks the user owns, is assigned to, or can view through a share."""
 
     template_name = "tasks/task_list.html"
     context_object_name = "tasks"
@@ -27,11 +27,13 @@ class TaskListView(LoginRequiredMixin, ListView):
     def get_queryset(self):
         user = self.request.user
         show = self.request.GET.get("show", "active")
-        queryset = Task.objects.deleted() if show == "deleted" else Task.objects.active()
-        queryset = queryset.filter(Q(owner=user) | Q(assignments__user=user))
+        if show == "deleted":
+            queryset = Task.objects.deleted().filter(Q(owner=user) | Q(assignments__user=user))
+        else:
+            queryset = Task.objects.active().visible_to(user)
         queryset = (
             queryset.select_related("owner")
-            .prefetch_related("labels", "assignees", "attachments")
+            .prefetch_related("labels", "assignees", "attachments", "shares__user")
             .distinct()
         )
         query = self.request.GET.get("q", "").strip()
@@ -64,9 +66,9 @@ class TaskListView(LoginRequiredMixin, ListView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["labels"] = Label.objects.order_by("name")
-        context["editable_task_ids"] = {
-            task.pk for task in context["tasks"] if can_edit_task(self.request.user, task)
-        }
+        context["editable_task_ids"] = set(
+            Task.objects.active().editable_by(self.request.user).values_list("pk", flat=True)
+        )
         context["sort_choices"] = (
             ("created_at", "Created"),
             ("updated_at", "Updated"),

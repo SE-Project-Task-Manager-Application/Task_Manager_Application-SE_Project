@@ -9,10 +9,13 @@ from django.db.models import Q
 from django.http import HttpResponseForbidden
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
-from django.views.decorators.http import require_GET, require_POST
+from django.views.decorators.http import require_GET, require_http_methods, require_POST
 
 from .forms import SystemConfigForm
 from .config import clear_system_config_cache, get_system_config
+from tasks.models import Label
+
+from .forms import LabelForm
 from .models import AuditRecord
 from .services import AuditService
 
@@ -167,3 +170,88 @@ def update_system_config(request):
         messages.success(request, "System configuration updated.")
         return redirect("adminpanel:system_config")
     return render(request, "adminpanel/system_config.html", {"form": form}, status=400)
+
+@require_http_methods(["GET", "POST"])
+@admin_required
+def category_list(request):
+    """TM-F-051: list all categories and add a new one."""
+    if request.method == "POST":
+        form = LabelForm(request.POST)
+        if form.is_valid():
+            with transaction.atomic():
+                label = form.save()
+                AuditService.record(
+                    actor=request.user,
+                    action="label.created",
+                    target=label,
+                    details={"name": label.name},
+                )
+            messages.success(request, f"Category '{label.name}' created.")
+            return redirect("adminpanel:category_list")
+    else:
+        form = LabelForm()
+    return render(
+        request,
+        "adminpanel/category_list.html",
+        {"labels": Label.objects.all(), "form": form},
+    )
+
+
+@require_http_methods(["GET", "POST"])
+@admin_required
+def category_rename(request, label_id):
+    label = get_object_or_404(Label, pk=label_id)
+    old_name = label.name
+    if request.method == "POST":
+        form = LabelForm(request.POST, instance=label)
+        if form.is_valid():
+            with transaction.atomic():
+                form.save()
+                if label.name != old_name:
+                    AuditService.record(
+                        actor=request.user,
+                        action="label.renamed",
+                        target=label,
+                        details={"old_name": old_name, "new_name": label.name},
+                    )
+            messages.success(request, f"Category renamed to '{label.name}'.")
+            return redirect("adminpanel:category_list")
+    else:
+        form = LabelForm(instance=label)
+    return render(
+        request,
+        "adminpanel/category_form.html",
+        {"form": form, "current_name": old_name},
+    )
+
+
+def _set_archived(request, label_id, archived):
+    label = get_object_or_404(Label, pk=label_id)
+    state = "archived" if archived else "active"
+    if label.is_archived == archived:
+        messages.success(request, f"'{label.name}' is already {state}.")
+        return redirect("adminpanel:category_list")
+
+    with transaction.atomic():
+        label.is_archived = archived
+        label.save(update_fields=["is_archived"])
+        AuditService.record(
+            actor=request.user,
+            action="label.archived" if archived else "label.restored",
+            target=label,
+            details={"name": label.name},
+        )
+    messages.success(request, f"'{label.name}' is now {state}.")
+    return redirect("adminpanel:category_list")
+
+
+@require_POST
+@admin_required
+def category_archive(request, label_id):
+    return _set_archived(request, label_id, True)
+
+
+@require_POST
+@admin_required
+def category_restore(request, label_id):
+    return _set_archived(request, label_id, False)

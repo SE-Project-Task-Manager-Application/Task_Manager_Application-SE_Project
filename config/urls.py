@@ -25,5 +25,6 @@ path("admin/", admin.site.urls),
 path("accounts/", include("accounts.urls")),
 path("tasks/", include("tasks.urls")),
 path("", include("storage.urls")),
+    path("dashboard/", include("dash.urls")),
     path("adminpanel/", include("adminpanel.urls")),
 ]

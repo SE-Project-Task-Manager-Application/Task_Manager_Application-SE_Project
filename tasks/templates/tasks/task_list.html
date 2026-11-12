@@ -61,6 +61,7 @@
             <th scope="col">Due</th>
             <th scope="col">Assigned to</th>
             <th scope="col">Labels</th>
+            <th scope="col">Access</th>
             <th scope="col">Actions</th>
           </tr>
         </thead>
@@ -73,6 +74,31 @@
               <td>{% if task.due_date %}{{ task.due_date|date:"Y-m-d H:i" }}{% else %}&ndash;{% endif %}</td>
               <td>{% for person in task.assignees.all %}{{ person.email }}{% if not forloop.last %}, {% endif %}{% empty %}&ndash;{% endfor %}</td>
               <td>{% for label in task.labels.all %}<span class="chip">{{ label.name }}</span>{% empty %}&ndash;{% endfor %}</td>
+              <td>
+                {% if task.owner_id == user.id %}
+                  <strong>Owner</strong>
+                {% else %}
+                  {% for share in task.shares.all %}{% if share.user_id == user.id %}{{ share.get_permission_display }}{% endif %}{% endfor %}
+                  {% if user in task.assignees.all %}<strong>Assignee</strong>{% endif %}
+                {% endif %}
+                {% if task.owner_id == user.id %}
+                  {% for share in task.shares.all %}<div>{{ share.user.email }}: {{ share.get_permission_display }}</div>{% endfor %}
+                  {% if not task.is_deleted %}<details>
+                    <summary aria-label="Share {{ task.title }}">Share task</summary>
+                    <form method="post" action="{% url 'tasks:share' task.id %}">
+                      {% csrf_token %}
+                      <label for="share-email-{{ task.id }}">User email</label>
+                      <input id="share-email-{{ task.id }}" type="email" name="email" required>
+                      <label for="share-permission-{{ task.id }}">Permission</label>
+                      <select id="share-permission-{{ task.id }}" name="permission">
+                        <option value="viewer">Viewer</option>
+                        <option value="editor">Editor</option>
+                      </select>
+                      <button type="submit">Share</button>
+                    </form>
+                  </details>{% endif %}
+                {% endif %}
+              </td>
               <td>
                 {% if not task.is_deleted %}
                   <details>
@@ -100,17 +126,19 @@
                     </form>
                   {% endif %}
                 {% else %}
-                  <a href="{% url 'tasks:edit' task.pk %}">Edit</a>
-                  {% if task.status == "done" %}
-                  <form method="post" action="{% url 'tasks:reopen' task.pk %}">
-                    {% csrf_token %}<input type="hidden" name="expected_version" value="{{ task.version }}">
-                    <button type="submit">Reopen</button>
-                  </form>
-                  {% else %}
-                  <form method="post" action="{% url 'tasks:complete' task.pk %}">
-                    {% csrf_token %}<input type="hidden" name="expected_version" value="{{ task.version }}">
-                    <button type="submit">Complete</button>
-                  </form>
+                  {% if task.pk in editable_task_ids %}
+                    <a href="{% url 'tasks:edit' task.pk %}">Edit</a>
+                    {% if task.status == "done" %}
+                    <form method="post" action="{% url 'tasks:reopen' task.pk %}">
+                      {% csrf_token %}<input type="hidden" name="expected_version" value="{{ task.version }}">
+                      <button type="submit">Reopen</button>
+                    </form>
+                    {% else %}
+                    <form method="post" action="{% url 'tasks:complete' task.pk %}">
+                      {% csrf_token %}<input type="hidden" name="expected_version" value="{{ task.version }}">
+                      <button type="submit">Complete</button>
+                    </form>
+                    {% endif %}
                   {% endif %}
                   {% if task.owner_id == request.user.pk %}
                     <form method="post" action="{% url 'tasks:delete' task.pk %}">

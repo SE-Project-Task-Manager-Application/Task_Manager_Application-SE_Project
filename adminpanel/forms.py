@@ -1,5 +1,7 @@
 from django import forms
 
+from tasks.models import Label
+
 from .models import SystemConfig
 
 
@@ -28,3 +30,21 @@ class SystemConfigForm(forms.ModelForm):
         if value < 300 or value > 86400:
             raise forms.ValidationError("Session timeout must be between 5 minutes and 24 hours.")
         return value
+
+
+class LabelForm(forms.ModelForm):
+    """Create or rename a category (TM-F-051)."""
+
+    class Meta:
+        model = Label
+        fields = ["name"]
+        labels = {"name": "Category name"}
+
+    def clean_name(self):
+        name = " ".join(self.cleaned_data["name"].split())
+        clash = Label.objects.filter(name__iexact=name)
+        if self.instance.pk:
+            clash = clash.exclude(pk=self.instance.pk)
+        if clash.exists():
+            raise forms.ValidationError("A category with this name already exists.")
+        return name
