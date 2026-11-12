@@ -62,7 +62,11 @@ Password for all test accounts (test only): `SEPROG123`
 - PostgreSQL 16 listens on 127.0.0.1:5432. Django reads `DB_NAME`, `DB_USER`, `DB_PASSWORD`,
   `DB_HOST` and `DB_PORT` from `.env`.
 - MailHog receives e-mail on 127.0.0.1:1025. Read the captured messages in its inbox at
-  http://127.0.0.1:8025/ (registration, password-reset, e-mail-change and assignment mails).
+  http://127.0.0.1:8025/ (registration, password-reset, e-mail-change, assignment and
+  shared-task update mails).
+- Shared-task update notices are stored until delivered. Schedule
+  `python manage.py deliver_notifications` to run every five minutes so failed sends are
+  retried and collaborators are notified within the TC-Collab-02 window.
 - Stop the services: `docker compose down`.
 - Stop them and wipe the database (deletes all data): `docker compose down -v`.
 - If `docker compose up` says port 5432 is already in use, another PostgreSQL is running on

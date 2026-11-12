@@ -1,22 +1,17 @@
-"""NotificationService (S-05): thin working stub for the notification interface.
+"""NotificationService (S-05): notification enqueue and delivery helpers.
 
-SAD 4.3: NotificationService.enqueue/send(event) accepts a domain event and delivers
-it. This stub keeps pending events in memory and sends them as e-mail through Django's
-mail layer (MailHog in development). It is deliberately small:
+Shared-task update events are persisted during the task update transaction, so a mail
+server outage cannot affect that action and the event survives process restarts.
 
-- send(event)           deliver one event now; returns True/False and never raises, so a
-                        mail-server problem cannot break the request that triggered it.
-                        The connection times out after EMAIL_TIMEOUT seconds. This is
-                        what TaskService calls (after commit) when a task is assigned.
+- send(event)           deliver one event now; returns True/False and never raises.
 - enqueue(event)        queue an event for later delivery
-- deliver_pending()     send everything queued. Nothing calls enqueue/deliver_pending
-                        at runtime yet: they are the hook for a later background job.
+- deliver_persisted()   attempt durable shared-task notices; failed rows remain pending.
 
 Verify delivery by watching MailHog (http://localhost:8025) or, in tests, the
 django.core.mail.outbox list.
 
-Not done yet (later notification stories): a persisted Notification table that survives
-restarts, retry/back-off, and due-date reminders. See DEVIATIONS.md.
+Shared-task update notifications are retried by running the ``deliver_notifications``
+management command every five minutes (TC-Collab-02).
 """
 
 import logging
@@ -25,6 +20,9 @@ from dataclasses import dataclass, field
 
 from django.conf import settings
 from django.core.mail import send_mail
+from django.utils import timezone
+
+from .models import Notification
 
 logger = logging.getLogger(__name__)
 
@@ -41,6 +39,50 @@ class NotificationEvent:
 
 
 class NotificationService:
+    @staticmethod
+    def enqueue_persisted(event, task):
+        """Persist an event so a later delivery run can retry it."""
+        if not isinstance(event, NotificationEvent):
+            raise TypeError("enqueue_persisted() needs a NotificationEvent.")
+        return Notification.objects.create(
+            kind=event.kind,
+            recipient=event.recipient,
+            task=task,
+            subject=event.subject,
+            body=event.body,
+            scheduled_for=timezone.now(),
+        )
+
+    @classmethod
+    def deliver_persisted(cls, now=None):
+        """Attempt all pending notifications; failures remain queued for retry."""
+        now = now or timezone.now()
+        sent = failed = 0
+        pending = Notification.objects.filter(
+            status=Notification.Status.PENDING, scheduled_for__lte=now
+        ).select_related("recipient")
+        for notification in pending.iterator():
+            notification.attempts += 1
+            notification.last_attempt_at = now
+            event = NotificationEvent(
+                kind=notification.kind,
+                recipient=notification.recipient,
+                subject=notification.subject,
+                body=notification.body,
+            )
+            if cls.send(event):
+                notification.status = Notification.Status.SENT
+                notification.sent_at = now
+                notification.last_error = ""
+                sent += 1
+            else:
+                notification.last_error = "delivery_failed"
+                failed += 1
+            notification.save(
+                update_fields=["attempts", "last_attempt_at", "status", "sent_at", "last_error"]
+            )
+        return sent, failed
+
     @staticmethod
     def enqueue(event):
         """Queue an event for delivery and return it."""
