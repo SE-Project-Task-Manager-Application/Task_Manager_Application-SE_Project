@@ -200,11 +200,11 @@ class NotificationService:
         if not recipient_email:
             logger.warning("notification skipped kind=%s: recipient has no e-mail", event.kind)
             return False
-        config = get_system_config()
-        if not config.notifications_enabled:
-            logger.info("notification disabled kind=%s", event.kind)
-            return False
         try:
+            config = get_system_config()
+            if not config.notifications_enabled:
+                logger.info("notification disabled kind=%s", event.kind)
+                return False
             sender = (
                 config.notification_sender or getattr(settings, "DEFAULT_FROM_EMAIL", None)
             )
