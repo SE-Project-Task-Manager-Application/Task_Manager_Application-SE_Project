@@ -12,6 +12,7 @@ import pytest
 from django.urls import reverse
 from django.utils import timezone
 
+from collab.models import TaskShare
 from tasks.models import Task
 
 pytestmark = pytest.mark.django_db
@@ -110,3 +111,30 @@ def test_csv_only_contains_the_users_own_tasks(client, login, make_user):
 def test_login_required(client):
     response = client.get(reverse(CSV_URL))
     assert response.status_code == 302
+
+
+def test_csv_escapes_formula_like_text(client, login):
+    """Text starting with = + - @ is apostrophe-prefixed so spreadsheets keep it as text."""
+    user = login()
+    make_task(user, '=HYPERLINK("https://evil.example","click")')
+    make_task(user, "+SUM(1,2)")
+    make_task(user, "@mention")
+    make_task(user, "-10")
+    rows = read_csv(client.get(reverse(CSV_URL)))
+    titles = task_titles(rows)
+    assert '\'=HYPERLINK("https://evil.example","click")' in titles
+    assert "'+SUM(1,2)" in titles
+    assert "'@mention" in titles
+    assert "'-10" in titles
+
+
+def test_csv_includes_shared_tasks(client, login, make_user):
+    """The export uses the same visibility rule as the dashboard and task list."""
+    user = login()
+    owner = make_user(email="owner@example.com")
+    shared = make_task(owner, "shared task")
+    TaskShare.objects.create(
+        task=shared, user=user, permission=TaskShare.Permission.VIEWER, shared_by=owner
+    )
+    rows = read_csv(client.get(reverse(CSV_URL)))
+    assert task_titles(rows) == ["shared task"]

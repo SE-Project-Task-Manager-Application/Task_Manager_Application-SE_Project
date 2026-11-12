@@ -17,7 +17,6 @@ when no range is chosen.
 import csv
 import datetime
 
-from django.db.models import Q
 from django.utils import timezone
 
 from tasks.models import Task
@@ -26,13 +25,17 @@ OPEN_STATUSES = (Task.Status.TODO, Task.Status.IN_PROGRESS)
 
 
 def visible_tasks(user):
-    """Active tasks the user owns or is assigned to (same scope as the task list)."""
+    """Active tasks visible to the user: owned, assigned, or shared with them.
+
+    Reuses the task list's visibility rule (TaskQuerySet.visible_to) so the
+    dashboard and CSV export cover exactly the same tasks as the task list,
+    including tasks shared via collab.TaskShare.
+    """
     return (
         Task.objects.active()
-        .filter(Q(owner=user) | Q(assignments__user=user))
+        .visible_to(user)
         .select_related("owner")
         .prefetch_related("labels", "assignees")
-        .distinct()
     )
 
 
@@ -79,17 +82,33 @@ def summary_for(user, start=None, end=None, now=None):
 
 CSV_COLUMNS = ("title", "status", "priority", "due_date", "owner", "assignees", "labels")
 
+# A cell starting with one of these is interpreted as a formula by spreadsheet
+# apps (CSV injection); user-controlled text must be neutralised on export.
+FORMULA_PREFIXES = ("=", "+", "-", "@", "\t", "\r")
+
+
+def csv_safe(value):
+    """Prefix formula-looking text with an apostrophe so it stays plain text."""
+    text = str(value)
+    if text[:1] in FORMULA_PREFIXES:
+        return "'" + text
+    return text
+
 
 def task_row(task):
-    """One CSV row for a task, using display values like the web UI."""
+    """One CSV row for a task, using display values like the web UI.
+
+    User-controlled text fields (title, emails, labels) are escaped so a
+    spreadsheet does not run them as formulas.
+    """
     return (
-        task.title,
+        csv_safe(task.title),
         task.get_status_display(),
         task.get_priority_display(),
         timezone.localtime(task.due_date).strftime("%Y-%m-%d %H:%M") if task.due_date else "",
-        task.owner.email,
-        ", ".join(person.email for person in task.assignees.all()),
-        ", ".join(label.name for label in task.labels.all()),
+        csv_safe(task.owner.email),
+        csv_safe(", ".join(person.email for person in task.assignees.all())),
+        csv_safe(", ".join(label.name for label in task.labels.all())),
     )
 
 

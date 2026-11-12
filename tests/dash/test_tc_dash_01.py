@@ -9,6 +9,7 @@ import pytest
 from django.urls import reverse
 from django.utils import timezone
 
+from collab.models import TaskShare
 from tasks.models import Task, TaskAssignment
 
 pytestmark = pytest.mark.django_db
@@ -115,3 +116,27 @@ def test_login_required(client):
     response = client.get(reverse(DASH_URL))
     assert response.status_code == 302
     assert "/accounts/login" in response["Location"]
+
+
+def test_shared_tasks_are_counted(client, login, make_user):
+    """Tasks shared with the user count too, matching the task list's visibility."""
+    user = login()
+    owner = make_user(email="owner@example.com")
+    shared = make_task(owner, "shared with me", due_delta_days=1)
+    TaskShare.objects.create(
+        task=shared, user=user, permission=TaskShare.Permission.VIEWER, shared_by=owner
+    )
+    response = client.get(reverse(DASH_URL))
+    assert response.context["counts"]["total"] == 1
+    assert response.context["counts"]["open"] == 1
+
+
+def test_all_tasks_listed_without_pagination(client, login):
+    """More than 50 tasks are all listed on one page (pagination removed for now)."""
+    user = login()
+    for i in range(55):
+        make_task(user, f"bulk task {i}")
+    response = client.get(reverse(DASH_URL))
+    assert response.status_code == 200
+    assert response.context["counts"]["total"] == 55
+    assert len(response.context["tasks"]) == 55

@@ -35,7 +35,7 @@ class DashboardView(LoginRequiredMixin, RangeParamsMixin, ListView):
 
     template_name = "dash/dashboard.html"
     context_object_name = "tasks"
-    paginate_by = 50
+    # No pagination: the full range is listed on one page for now.
 
     def get_queryset(self):
         start, end = self.range_params()
