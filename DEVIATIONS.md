@@ -68,21 +68,21 @@ The submitted documents are the baseline and are not edited after submission. Ev
 - **Impact:** assignment and reassignment (TC-Task-01/02) work on assignment records. Anything that read "the assignee" reads the task's assignment list instead.
 - **Status:** Applied
 
-### D-07 - Notification stub is not stored in the database
+### D-07 - Persistent scheduled delivery for task due reminders
 - **Logged:** 2026-10-15
 - **Document:** SAD, section 4.1 (NotifModule data: "Notification / delivery status") and section 4.3
 - **Planned:** notifications are delivered asynchronously and their delivery status is persisted.
-- **What we are doing instead:** S-05 provides NotificationService as a thin stub. When a task is assigned, TaskService sends the e-mail directly after the database transaction commits (MailHog in development); `send()` never raises and the mail connection times out after `EMAIL_TIMEOUT` (5 seconds). `enqueue()` and `deliver_pending()` exist for a later background job but nothing calls them yet. No Notification record, retry, or due-date reminder exists yet; those come with the notification stories.
-- **Why:** Sprint 0 only needs the interface to exist and TC-Task-01's "assignee is notified" to be checkable.
-- **Impact:** a request that assigns a task waits for the mail server for up to 5 seconds if it is unreachable, and a failed mail is logged but not retried, so the STP 5.2 retry test waits for the later story. TC-Task-01 is verified in MailHog (http://localhost:8025) or `django.core.mail.outbox`.
-- **Status:** Proposed (to be confirmed by the team)
+- **What we are doing instead:** task due-date reminders are persisted and retried by `python manage.py send_due_reminders`, scheduled once per minute. A reminder is eligible 24 hours before its task is due; each assignee receives one, or the owner receives it when the task has no assignees. A failed reminder is retried for up to 120 failed attempts (up to two hours at this schedule), then marked failed. Assignment and account e-mails still use `NotificationService.send()` directly after their database transactions; the legacy in-memory `enqueue()` and `deliver_pending()` are not used for those messages.
+- **Why:** TM-F-014 implements a persistent scheduled path for due reminders; other notification stories have not yet been moved to it.
+- **Impact:** due reminders survive process restarts, retry after mail failures, and stop retrying after the documented limit. Assignment and account mail can still wait up to `EMAIL_TIMEOUT` (5 seconds), and failed direct sends are not retried; see D-08 and D-09.
+- **Status:** Applied (TM-F-014, 2026-11-07); remaining direct-send behavior is recorded in D-08 and D-09.
 
 ### D-08 - Registration confirmation email is sent synchronously
 - **Logged:** 2026-10-29
 - **Document:** Issue #10 / ADR-003
 - **Planned:** Registration confirmation e-mail is queued so the request does not wait for the mail server.
 - **What we are doing instead:** Registration sends the confirmation e-mail directly after creating the account. If the mail server is unavailable, the account remains created, but the request may wait up to `EMAIL_TIMEOUT` (5 seconds). The existing in-memory queue has no background delivery runner, so using `enqueue()` alone would not deliver the e-mail.
-- **Why:** Keep the confirmation e-mail deliverable while a background delivery mechanism is not available.
+- **Why:** The scheduled delivery job is currently scoped to persisted task due reminders (D-07); registration confirmation has not been migrated to that queue.
 - **Impact:** Registration is best-effort: a mail failure is logged, the account stays active, and delivery is not retried.
 - **Status:** Proposed (to be confirmed by the team)
 
@@ -91,7 +91,7 @@ The submitted documents are the baseline and are not edited after submission. Ev
 - **Document:** SAD, ADR-003 (isolated, asynchronous notification delivery) and section 4.1 (StorageModule); SRS TM-F-004 and TM-F-005
 - **Planned:** account e-mails are queued and delivered by a background job; stored files go through validation and scanning.
 - **What we are doing instead:** password-reset and e-mail-change messages are sent directly through `NotificationService.send()`, which never raises and times out after 5 seconds. Profile pictures are stored on local disk (`MEDIA_ROOT`) and served through a login-required view. An upload is checked by extension, the 10 MB limit and the file's first bytes; it is not decoded or virus-scanned.
-- **Why:** there is no background delivery runner (see D-07 and D-08), and the file-storage backend is an open SAD issue.
+- **Why:** the scheduled delivery job is currently scoped to task due reminders (D-07); account mail has not been migrated to it, and the file-storage backend is an open SAD issue.
 - **Impact:** a slow mail server can delay these requests by up to 5 seconds, and a failed mail is not retried (for an e-mail change the user is told when sending failed). File checks are weaker than a real scanner (see D-05).
 - **Status:** Proposed (to be confirmed by the team)
 
@@ -143,7 +143,7 @@ These are not deviations by themselves, because the SAD left them open. Each row
 |---|---|---|
 | Database | PostgreSQL 16, run in Docker Compose for development; the CI test job uses a `postgres:16` service. Django connects through the `DB_*` variables. | Applied |
 | Test email server | MailHog, as named in the STP | Applied |
-| Background jobs (reminders, queued e-mail) | A scheduled Django management command; no Celery | Proposed |
+| Background jobs (reminders, queued e-mail) | `send_due_reminders` runs once per minute. It queues reminders with a 24-hour lead time for every assignee, or the owner if unassigned; failures are retried for up to 120 attempts (up to two hours), then marked failed. No Celery. | Applied |
 | Attachment scanning | A scanner stub behind an interface (extension and size checks, EICAR test file); no real antivirus integration (see D-05) | Proposed |
 | REST/JSON endpoints | Not built; server-rendered Django views only | Proposed |
 | Who can recover a soft-deleted task | The task owner | Applied |
