@@ -122,6 +122,15 @@ The submitted documents are the baseline and are not edited after submission. Ev
 - **Impact:** none on the requirements. Each story's issue or pull request records who built it and who tested it.
 - **Status:** Applied
 
+### D-13 - Category restore action
+- **Logged:** 2026-11-11
+- **Document:** SRS 4.6, TM-F-051 (Manage categories)
+- **Planned:** the Administrator can create, rename or archive global categories.
+- **What we are doing instead:** the same, plus a Restore action that makes an archived category active again. Restoring writes a `label.restored` audit record. No screen deletes a category.
+- **Why:** archiving with no way back would be a dead end for administrators.
+- **Impact:** none on the acceptance criteria (archived categories still do not appear when creating a task). One extra action and one extra audit action name, both covered by TC-Admin-02 (PR #77).
+- **Status:** Applied
+
 <!-- Copy a block above for each new deviation. -->
 
 ---
@@ -137,7 +146,7 @@ These are not deviations by themselves, because the SAD left them open. Each row
 | Background jobs (reminders, queued e-mail) | A scheduled Django management command; no Celery | Proposed |
 | Attachment scanning | A scanner stub behind an interface (extension and size checks, EICAR test file); no real antivirus integration (see D-05) | Proposed |
 | REST/JSON endpoints | Not built; server-rendered Django views only | Proposed |
-| Who can recover a soft-deleted task | The task owner | Proposed |
+| Who can recover a soft-deleted task | The task owner | Applied |
 | Who can assign tasks | The Project Manager role, to any active user (enforced in `TaskService`) | Applied |
 | Who can change collaborator permissions | The task owner (per TM-F-030 and TM-F-032) | Proposed |
 | Task status values | `todo`, `in_progress`, and `done`, as agreed by Dev A and Dev B and recorded in `docs/schema.md` | Applied |
