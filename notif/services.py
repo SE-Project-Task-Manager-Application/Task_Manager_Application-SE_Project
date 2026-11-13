@@ -30,6 +30,7 @@ from datetime import timedelta
 from django.conf import settings
 from django.core.mail import send_mail
 from django.db import IntegrityError, transaction
+from django.db.models import F, Q
 from django.utils import timezone
 
 from tasks.models import Task
@@ -52,6 +53,7 @@ class NotificationEvent:
 class NotificationService:
     REMINDER_LEAD = timedelta(hours=24)
     MAX_DELIVERIES_PER_RUN = 5
+    CLAIM_TIMEOUT = timedelta(minutes=10)
     # At the documented one-minute scheduler interval this allows up to two hours
     # of retries before a persistently undeliverable reminder becomes terminal.
     MAX_ATTEMPTS = 120
@@ -110,7 +112,7 @@ class NotificationService:
 
     @classmethod
     def deliver_scheduled(cls, now=None):
-        """Deliver a bounded batch of due rows, locking each row against other runners.
+        """Deliver a bounded batch of due reminders using atomic row claims.
 
         Failed mail remains pending for retry, but the run stops at the first failure
         and permanently fails a row after MAX_ATTEMPTS. A batch limit plus the SMTP
@@ -120,61 +122,92 @@ class NotificationService:
         sent = failed = cancelled = 0
         processed = 0
         while processed < cls.MAX_DELIVERIES_PER_RUN:
-            failed_this_attempt = False
-            with transaction.atomic():
-                notification = (
-                    Notification.objects.filter(
-                        status=Notification.Status.PENDING, scheduled_for__lte=now
-                    )
-                    .select_related("recipient", "task")
-                    .select_for_update(skip_locked=True, of=("self",))
-                    .order_by("scheduled_for", "pk")
-                    .first()
-                )
-                if notification is None:
-                    break
+            notification = cls._claim_next("task.due_reminder", now)
+            if notification is None:
+                break
+            processed += 1
 
-                task = notification.task
-                if notification.kind == "task.due_reminder" and (
-                    task is None
-                    or task.is_deleted
-                    or task.status == Task.Status.DONE
-                    or task.due_date is None
-                    or task.due_date <= now
-                    or task.due_date != notification.task_due_date
-                ):
-                    notification.status = Notification.Status.CANCELLED
-                    notification.save(update_fields=["status"])
-                    cancelled += 1
-                    processed += 1
-                    continue
+            task = notification.task
+            if (
+                task is None
+                or task.is_deleted
+                or task.status == Task.Status.DONE
+                or task.due_date is None
+                or task.due_date <= now
+                or task.due_date != notification.task_due_date
+            ):
+                notification.status = Notification.Status.CANCELLED
+                notification.save(update_fields=["status"])
+                cancelled += 1
+                continue
 
-                notification.attempts += 1
-                notification.last_attempt_at = now
-                event = NotificationEvent(
-                    kind=notification.kind,
-                    recipient=notification.recipient,
-                    subject=notification.subject,
-                    body=notification.body,
-                )
-                if cls.send(event):
-                    notification.status = Notification.Status.SENT
-                    notification.sent_at = now
-                    notification.last_error = ""
-                    sent += 1
+            event = NotificationEvent(
+                kind=notification.kind,
+                recipient=notification.recipient,
+                subject=notification.subject,
+                body=notification.body,
+            )
+            if cls.send(event):
+                notification.status = Notification.Status.SENT
+                notification.sent_at = now
+                notification.last_error = ""
+                sent += 1
+            else:
+                notification.last_error = "delivery_failed"
+                if notification.attempts >= cls.MAX_ATTEMPTS:
+                    notification.status = Notification.Status.FAILED
                 else:
-                    notification.last_error = "delivery_failed"
-                    if notification.attempts >= cls.MAX_ATTEMPTS:
-                        notification.status = Notification.Status.FAILED
-                    failed += 1
-                    failed_this_attempt = True
+                    notification.status = Notification.Status.PENDING
+                failed += 1
                 notification.save(update_fields=[
                     "attempts", "last_attempt_at", "status", "sent_at", "last_error"
                 ])
-                processed += 1
-            if failed_this_attempt:
                 break
+            notification.save(update_fields=[
+                "attempts", "last_attempt_at", "status", "sent_at", "last_error"
+            ])
         return sent, failed, cancelled
+
+    @classmethod
+    def _claim_next(cls, kind, now, exclude_ids=()):
+        """Atomically claim one due row; compare-and-set also works on SQLite."""
+        claim_time = timezone.now()
+        stale_before = claim_time - cls.CLAIM_TIMEOUT
+        claimable = (
+            Q(status=Notification.Status.PENDING)
+            | Q(status=Notification.Status.PROCESSING, last_attempt_at__lt=stale_before)
+            | Q(status=Notification.Status.PROCESSING, last_attempt_at__isnull=True)
+        )
+        skipped = list(exclude_ids)
+        while True:
+            candidate_id = (
+                Notification.objects.filter(
+                    kind=kind,
+                    scheduled_for__lte=now,
+                )
+                .filter(claimable)
+                .exclude(pk__in=skipped)
+                .order_by("scheduled_for", "pk")
+                .values_list("pk", flat=True)
+                .first()
+            )
+            if candidate_id is None:
+                return None
+
+            claimed = (
+                Notification.objects.filter(pk=candidate_id)
+                .filter(claimable)
+                .update(
+                    status=Notification.Status.PROCESSING,
+                    attempts=F("attempts") + 1,
+                    last_attempt_at=claim_time,
+                )
+            )
+            if claimed:
+                return Notification.objects.select_related("recipient", "task").get(
+                    pk=candidate_id
+                )
+            skipped.append(candidate_id)
 
     @staticmethod
     def enqueue_persisted(event, task):
@@ -192,17 +225,14 @@ class NotificationService:
 
     @classmethod
     def deliver_persisted(cls, now=None):
-        """Attempt due shared-task notices; failed rows stay pending for retry."""
+        """Attempt all due shared-task notices; failed rows stay pending for retry."""
         now = now or timezone.now()
         sent = failed = 0
-        pending = Notification.objects.filter(
-            kind="task.shared_updated",
-            status=Notification.Status.PENDING,
-            scheduled_for__lte=now,
-        ).select_related("recipient")
-        for notification in pending.iterator():
-            notification.attempts += 1
-            notification.last_attempt_at = now
+        deferred_ids = set()
+        while True:
+            notification = cls._claim_next("task.shared_updated", now, deferred_ids)
+            if notification is None:
+                break
             event = NotificationEvent(
                 kind=notification.kind,
                 recipient=notification.recipient,
@@ -216,6 +246,8 @@ class NotificationService:
                 sent += 1
             else:
                 notification.last_error = "delivery_failed"
+                notification.status = Notification.Status.PENDING
+                deferred_ids.add(notification.pk)
                 failed += 1
             notification.save(update_fields=[
                 "attempts", "last_attempt_at", "status", "sent_at", "last_error"
