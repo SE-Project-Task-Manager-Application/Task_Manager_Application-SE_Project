@@ -162,7 +162,7 @@ These are not deviations by themselves, because the SAD left them open. Each row
 
 | Item | Decision | Status |
 |---|---|---|
-| How TM-SR-001 (TLS 1.2+) is verified | HTTPS is required in production and HTTP is allowed locally; decide where TLS is demonstrated | Open |
+| How TM-SR-001 (TLS 1.2+) is verified | Django requires HTTPS in production and emits one-year HSTS; the production ingress must accept TLS 1.2+ and reject or redirect plaintext. HTTP remains enabled locally. | Applied (application settings; ingress verification requires a deployed staging/production endpoint) |
 | Final schedule | Pull requests were still being merged after the 30-10-2026 freeze date (for example migrations generated on 2026-11-02 and 2026-11-05). Record the agreed final dates in D-01 and D-02, or log the overrun as a deviation | Open |
 
 ---
