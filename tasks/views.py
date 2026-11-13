@@ -33,7 +33,7 @@ class TaskListView(LoginRequiredMixin, ListView):
             queryset = Task.objects.active().visible_to(user)
         queryset = (
             queryset.select_related("owner")
-            .prefetch_related("labels", "assignees", "shares__user")
+            .prefetch_related("labels", "assignees", "attachments", "shares__user")
             .distinct()
         )
         query = self.request.GET.get("q", "").strip()

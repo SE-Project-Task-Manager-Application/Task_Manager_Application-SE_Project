@@ -154,6 +154,23 @@ class TaskService:
                 if user.pk not in existing_assignments:
                     TaskService.assign(locked, user, actor)
         AuditService.record(actor, "task.updated", locked, details={"version": locked.version})
+        if locked.shares.exists():
+            collaborators = {
+                share.user_id: share.user
+                for share in locked.shares.select_related("user")
+            }
+            collaborators[locked.owner_id] = locked.owner
+            for collaborator in collaborators.values():
+                if collaborator.pk == actor.pk:
+                    continue
+                event = NotificationEvent(
+                    kind="task.shared_updated",
+                    recipient=collaborator,
+                    subject=f"Shared task updated: {locked.title}",
+                    body=f"{actor.email} updated the shared task '{locked.title}'.",
+                    context={"task_id": locked.pk, "updated_by_id": actor.pk},
+                )
+                NotificationService.enqueue_persisted(event, locked)
         return locked
 
     @staticmethod

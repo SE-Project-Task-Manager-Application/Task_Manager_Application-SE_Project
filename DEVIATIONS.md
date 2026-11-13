@@ -68,14 +68,14 @@ The submitted documents are the baseline and are not edited after submission. Ev
 - **Impact:** assignment and reassignment (TC-Task-01/02) work on assignment records. Anything that read "the assignee" reads the task's assignment list instead.
 - **Status:** Applied
 
-### D-07 - Persistent scheduled delivery for task due reminders
+### D-07 - Persistent scheduled delivery for due reminders and shared updates
 - **Logged:** 2026-10-15
 - **Document:** SAD, section 4.1 (NotifModule data: "Notification / delivery status") and section 4.3
 - **Planned:** notifications are delivered asynchronously and their delivery status is persisted.
-- **What we are doing instead:** task due-date reminders are persisted and retried by `python manage.py send_due_reminders`, scheduled once per minute. A reminder is eligible 24 hours before its task is due; each assignee receives one, or the owner receives it when the task has no assignees. A failed reminder is retried for up to 120 failed attempts (up to two hours at this schedule), then marked failed. Assignment and account e-mails still use `NotificationService.send()` directly after their database transactions; the legacy in-memory `enqueue()` and `deliver_pending()` are not used for those messages.
-- **Why:** TM-F-014 implements a persistent scheduled path for due reminders; other notification stories have not yet been moved to it.
-- **Impact:** due reminders survive process restarts, retry after mail failures, and stop retrying after the documented limit. Assignment and account mail can still wait up to `EMAIL_TIMEOUT` (5 seconds), and failed direct sends are not retried; see D-08 and D-09.
-- **Status:** Applied (TM-F-014, 2026-11-07); remaining direct-send behavior is recorded in D-08 and D-09.
+- **What we are doing instead:** task due-date reminders are persisted and retried by `python manage.py send_due_reminders`, scheduled once per minute. A reminder is eligible 24 hours before its task is due; each assignee receives one, or the owner receives it when the task has no assignees. A failed reminder is retried for up to 120 failed attempts (up to two hours at this schedule), then marked failed. Shared-task updates are also persisted and retried by `python manage.py deliver_notifications`, scheduled every five minutes. Assignment and account e-mails still use `NotificationService.send()` directly after their database transactions; the legacy in-memory `enqueue()` and `deliver_pending()` are not used for those messages.
+- **Why:** TM-F-014 adds persistent due reminders, and Issue #24 adds persistent notifications for collaborator updates; other notification stories still use direct delivery.
+- **Impact:** due reminders and shared-task notices survive process restarts and retry after mail failures. Due reminders stop retrying after the documented limit. Assignment and account mail can still wait up to `EMAIL_TIMEOUT` (5 seconds), and failed direct sends are not retried; see D-08 and D-09.
+- **Status:** Applied (TM-F-014, 2026-11-07; Issue #24); remaining direct-send behavior is recorded in D-08 and D-09.
 
 ### D-08 - Registration confirmation email is sent synchronously
 - **Logged:** 2026-10-29
@@ -162,7 +162,7 @@ These are not deviations by themselves, because the SAD left them open. Each row
 
 | Item | Decision | Status |
 |---|---|---|
-| How TM-SR-001 (TLS 1.2+) is verified | HTTPS is required in production and HTTP is allowed locally; decide where TLS is demonstrated | Open |
+| How TM-SR-001 (TLS 1.2+) is verified | Django requires HTTPS in production and emits one-year HSTS; the production ingress must accept TLS 1.2+ and reject or redirect plaintext. HTTP remains enabled locally. | Applied (application settings; ingress verification requires a deployed staging/production endpoint) |
 | Final schedule | Pull requests were still being merged after the 30-10-2026 freeze date (for example migrations generated on 2026-11-02 and 2026-11-05). Record the agreed final dates in D-01 and D-02, or log the overrun as a deviation | Open |
 
 ---

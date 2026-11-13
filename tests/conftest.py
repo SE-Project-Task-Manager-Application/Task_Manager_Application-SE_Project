@@ -4,8 +4,14 @@ import itertools
 
 import pytest
 from django.contrib.auth import get_user_model
+from django.core.cache import cache
 
 TEST_PASSWORD = "SEPROG123"  # same test-only password as README.md
+
+
+@pytest.fixture(autouse=True)
+def clear_cached_configuration():
+    cache.clear()
 
 
 @pytest.fixture

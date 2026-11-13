@@ -22,10 +22,11 @@ its own file, so a failing test points straight at its TC ID.
 | `tests/admin/` | TC-Admin-01 to TC-Admin-04 |
 | `tests/sec/` | TC-Sec-01 to TC-Sec-05 (RBAC coverage is in `tests/task/`) |
 | `tests/ops/` | TC-Ops-01 |
+| `tests/perf/` | TC-Perf-01 (CI timing guard; the Locust load test is in `perf/`) |
 | `tests/accounts/` | User model rules (no TC ID; the TC-Auth tests are added by the auth stories) |
 | `tests/foundation/` | No TC ID: ORM, service and layout tests for the setup stories (S-03 to S-05) |
 
-Other groups (Perf, Retention, Scale, UX) get their own folder when
+Other groups (Retention, Scale, UX) get their own folder when
 their first test is written.
 
 ## Naming

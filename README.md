@@ -62,7 +62,10 @@ Password for all test accounts (test only): `SEPROG123`
 - PostgreSQL 16 listens on 127.0.0.1:5432. Django reads `DB_NAME`, `DB_USER`, `DB_PASSWORD`,
   `DB_HOST` and `DB_PORT` from `.env`.
 - MailHog receives e-mail on 127.0.0.1:1025. Read the captured messages in its inbox at
-  http://127.0.0.1:8025/ (registration, password-reset, e-mail-change and assignment mails).
+  http://127.0.0.1:8025/ (registration, password-reset, e-mail-change, assignment and
+  shared-task update mails).
+- Shared-task updates are queued durably. Schedule `python manage.py deliver_notifications`
+  every five minutes to retry failed sends and meet the TC-Collab-02 delivery window.
 - Task reminders have a 24-hour lead time: they become eligible at `due_date - 24 hours`.
   Schedule `python manage.py send_due_reminders` once per minute. It queues reminders for
   open tasks due within the next 24 hours, then sends them on the first run at or after
@@ -110,6 +113,13 @@ which follows the test-case IDs in the Test Plan.
 
 For production, set `DJANGO_SETTINGS_MODULE=config.settings.prod` and provide
 `DJANGO_SECRET_KEY` and `DJANGO_ALLOWED_HOSTS` through the environment.
+Production requires HTTPS: Django redirects insecure requests and sends a
+one-year HSTS policy. The trusted TLS-terminating proxy must overwrite
+`X-Forwarded-Proto` with the actual connection scheme before forwarding requests;
+do not expose Django directly to clients that can supply this header. Configure
+the ingress to accept TLS 1.2 or newer and reject plaintext traffic (or redirect
+HTTP to HTTPS before proxying). TLS protocol negotiation is enforced by that
+ingress, not by Django. Development and test settings continue to allow HTTP.
 
 ## Django apps
 
