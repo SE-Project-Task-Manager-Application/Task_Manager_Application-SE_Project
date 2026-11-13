@@ -62,6 +62,16 @@ def test_send_failure_is_contained_and_logged_safely(make_user, monkeypatch, cap
     assert "secret" not in caplog.text  # the exception message is not logged
 
 
+def test_send_config_lookup_failure_is_contained(make_user, monkeypatch):
+    def boom():
+        raise RuntimeError("configuration unavailable")
+
+    monkeypatch.setattr("notif.services.get_system_config", boom)
+
+    assert NotificationService.send(_event(make_user())) is False
+    assert mail.outbox == []
+
+
 def test_recipient_without_email_is_skipped(make_user):
     user = make_user()
     user.email = ""

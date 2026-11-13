@@ -32,6 +32,8 @@ from django.utils import timezone
 from tasks.models import Task
 from .models import Notification
 
+from adminpanel.config import get_system_config
+
 logger = logging.getLogger(__name__)
 
 _pending = deque()
@@ -199,10 +201,17 @@ class NotificationService:
             logger.warning("notification skipped kind=%s: recipient has no e-mail", event.kind)
             return False
         try:
+            config = get_system_config()
+            if not config.notifications_enabled:
+                logger.info("notification disabled kind=%s", event.kind)
+                return False
+            sender = (
+                config.notification_sender or getattr(settings, "DEFAULT_FROM_EMAIL", None)
+            )
             send_mail(
                 event.subject,
                 event.body,
-                getattr(settings, "DEFAULT_FROM_EMAIL", None),
+                sender,
                 [recipient_email],
                 fail_silently=False,
             )

@@ -5,8 +5,35 @@ existing row, delete(), and the queryset update()/delete()/bulk_update() all rai
 """
 
 from django.conf import settings
+from django.core.cache import cache
 from django.db import models
 from django.utils import timezone
+
+
+class SystemConfig(models.Model):
+    """The single database-backed system configuration record."""
+
+    password_min_length = models.PositiveSmallIntegerField(default=8)
+    session_timeout_seconds = models.PositiveIntegerField(default=86400)
+    notifications_enabled = models.BooleanField(default=True)
+    notification_sender = models.EmailField(default="no-reply@example.com")
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "system configuration"
+        constraints = [
+            models.CheckConstraint(
+                condition=models.Q(pk=1),
+                name="system_config_singleton",
+            ),
+        ]
+
+    def __str__(self):
+        return "System configuration"
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        cache.delete("adminpanel.system_config")
 
 
 class AuditImmutableError(Exception):
