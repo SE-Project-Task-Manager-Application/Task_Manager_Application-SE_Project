@@ -131,3 +131,9 @@ caption { text-align: left; font-weight: 600; padding: 0.5rem 0; }
 .comment__meta { margin: 0 0 0.25rem; }
 .comment__meta time { margin-left: 0.5rem; color: var(--muted); }
 .comment__body { margin: 0; overflow-wrap: anywhere; }
+
+/* Task activity history (TM-F-034) */
+.activity-list { list-style: none; padding: 0; }
+.activity { display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; padding: 0.5rem 0; border-bottom: 1px solid var(--border); }
+.activity time { color: var(--muted); font-variant-numeric: tabular-nums; min-width: 13rem; }
+.activity__text { overflow-wrap: anywhere; }

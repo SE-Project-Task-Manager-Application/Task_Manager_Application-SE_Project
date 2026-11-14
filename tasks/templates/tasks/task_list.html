@@ -125,6 +125,7 @@
                     {% endif %}
                   </details>
                 {% endif %}
+                <a href="{% url 'collab:task_activity' task.pk %}">History<span class="visually-hidden"> of {{ task.title }}</span></a>
                 {% if task.is_deleted %}
                   {% if task.owner_id == request.user.pk %}
                     <form method="post" action="{% url 'tasks:restore' task.pk %}">
