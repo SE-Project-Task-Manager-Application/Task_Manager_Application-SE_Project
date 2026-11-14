@@ -17,6 +17,10 @@
 |  | `status` | One of `todo`, `in_progress`, or `done`. New tasks start as `todo`. |
 |  | `deleted_at` | Empty unless the task has been soft-deleted. |
 |  | `created_at` / `updated_at` | Creation time and most recent update time. |
+| **Comment** | `task` | Reference to the task commented on (TM-F-033). |
+|  | `author` | User who wrote the comment. Anyone who can view the task can comment. |
+|  | `body` | Required text, up to 2000 characters, stored without leading or trailing spaces. |
+|  | `created_at` | When the comment was posted (UTC). Each comment also writes a `task.commented` audit record with the comment's id, which the task activity history (TM-F-034) reads. |
 | **Task assignment** | `task` | Reference to the task. |
 |  | `user` | Reference to an assigned user. A task may have multiple assignment records, so it can have multiple assignees. |
 |  | `assigned_by` | User who made the assignment. |

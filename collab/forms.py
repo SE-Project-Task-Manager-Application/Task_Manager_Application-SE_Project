@@ -1,7 +1,7 @@
 from django import forms
 from django.contrib.auth import get_user_model
 
-from .models import TaskShare
+from .models import COMMENT_MAX_LENGTH, TaskShare
 
 
 class TaskShareForm(forms.Form):
@@ -26,3 +26,12 @@ class TaskShareForm(forms.Form):
         if not self.user.is_active or getattr(self.user, "deleted_at", None):
             raise forms.ValidationError("That account is disabled and cannot receive a share.")
         return email
+
+
+class CommentForm(forms.Form):
+    body = forms.CharField(
+        label="Add a comment",
+        max_length=COMMENT_MAX_LENGTH,
+        widget=forms.Textarea(attrs={"rows": 4}),
+        help_text=f"Up to {COMMENT_MAX_LENGTH} characters.",
+    )

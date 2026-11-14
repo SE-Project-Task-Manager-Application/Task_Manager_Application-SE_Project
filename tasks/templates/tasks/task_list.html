@@ -133,6 +133,7 @@
                     </form>
                   {% endif %}
                 {% else %}
+                  <a href="{% url 'collab:task_comments' task.pk %}">Comments<span class="visually-hidden"> on {{ task.title }}</span></a>
                   {% if task.pk in editable_task_ids %}
                     <a href="{% url 'tasks:edit' task.pk %}">Edit</a>
                     {% if task.status == "done" %}
