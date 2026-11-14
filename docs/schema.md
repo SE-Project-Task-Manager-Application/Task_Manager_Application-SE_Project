@@ -33,7 +33,7 @@
 |  | `action` | Stable action name, such as `task.created`, `task.status_changed`, or `task.assignee_added`. |
 |  | `target_type` / `target_id` | The kind of record affected and its identifier, such as `task` and `42`. |
 |  | `created_at` | When the action happened. |
-|  | `details` | Optional information about the change, such as the old and new status or the assigned user. Never include passwords, tokens, or other secrets. |
+|  | `details` | Optional information about the change, such as the old and new status or the assigned user. Never include passwords, tokens, or other secrets. The task activity history (TM-F-034) is read from a task's audit records: `task.status_changed` stores `from` and `to`, and `task.updated` stores the names of the changed `fields`. |
 | **System config** | `password_min_length` | Minimum length required for newly chosen passwords. |
 |  | `session_timeout_seconds` | Inactivity timeout applied to authenticated sessions, capped at 86,400 seconds (24 hours). |
 |  | `notifications_enabled` / `notification_sender` | Database-controlled notification defaults. |

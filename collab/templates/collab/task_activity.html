@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}History: {{ task.title }}{% endblock %}
+{% block content %}
+  <p>
+    <a href="{% url 'tasks:list' %}">Back to tasks</a>
+    {% if not task.is_deleted %} · <a href="{% url 'collab:task_comments' task.pk %}">Comments</a>{% endif %}
+  </p>
+  <h1>Activity history: {{ task.title }}</h1>
+  {% if task.is_deleted %}<p>This task is deleted.</p>{% endif %}
+  <p>Oldest first. Times are in UTC.</p>
+
+  {% if entries %}
+    <ol class="activity-list">
+      {% for entry in entries %}
+        <li class="activity" data-action="{{ entry.action }}">
+          <time datetime="{{ entry.timestamp|date:'c' }}">{{ entry.timestamp|date:"Y-m-d H:i:s" }} UTC</time>
+          <span class="activity__text"><strong>{{ entry.actor }}</strong> {{ entry.description }}</span>
+        </li>
+      {% endfor %}
+    </ol>
+  {% else %}
+    <p>No activity recorded yet.</p>
+  {% endif %}
+{% endblock %}
