@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}{{ task.title }}{% endblock %}
+{% block content %}
+  <h1>{{ task.title }}</h1>
+  <p>{{ task.description|linebreaksbr }}</p>
+  <dl>
+    <dt>Status</dt>
+    <dd>{{ task.get_status_display }}</dd>
+    <dt>Priority</dt>
+    <dd>{{ task.get_priority_display }}</dd>
+    <dt>Due</dt>
+    <dd>{% if task.due_date %}{{ task.due_date|date:"Y-m-d H:i" }}{% else %}&ndash;{% endif %}</dd>
+  </dl>
+  <p><a href="{% url 'tasks:list' %}">Back to tasks</a></p>
+{% endblock %}
