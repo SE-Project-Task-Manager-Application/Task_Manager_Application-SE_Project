@@ -137,3 +137,78 @@ caption { text-align: left; font-weight: 600; padding: 0.5rem 0; }
 .activity { display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; padding: 0.5rem 0; border-bottom: 1px solid var(--border); }
 .activity time { color: var(--muted); font-variant-numeric: tabular-nums; min-width: 13rem; }
 .activity__text { overflow-wrap: anywhere; }
+
+/* Small task-list/dashboard layout polish. Keep the existing colors and controls. */
+.filter-bar {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(min(10rem, 100%), 1fr));
+  align-items: end; gap: 0.875rem; margin: 0 0 1.5rem;
+  padding: 1rem; border: 1px solid var(--border); border-radius: 4px; background: var(--surface);
+}
+.filter-field { min-width: 0; }
+.filter-field label { display: block; margin-bottom: 0.25rem; font-weight: 600; }
+.filter-field input, .filter-field select,
+.responsive-table input:not([type="hidden"]), .responsive-table select {
+  min-width: 0; max-width: 100%; width: 100%; min-height: 44px;
+  padding: 0.5rem; font: inherit; color: var(--text); background: var(--bg);
+  border: 1px solid var(--border); border-radius: 4px;
+}
+.date-filter { max-width: 40rem; }
+.date-filter legend { padding: 0 0.25rem; font-weight: 600; }
+.summary-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin: 1.5rem 0; }
+.summary-cards .card { padding: 1rem; border: 1px solid var(--border); border-radius: 4px; background: var(--surface); }
+.summary-cards dt { color: var(--muted); }
+.summary-cards dd { margin: 0.25rem 0 0; font-size: 1.75rem; font-weight: 700; }
+.table-wrap { max-width: 100%; }
+.responsive-table { font-size: 0.9375rem; }
+.responsive-table th, .responsive-table td { padding: 0.5rem; }
+.responsive-table th[scope="row"] { min-width: 8rem; }
+.responsive-table td[data-label="Labels"] { min-width: 7rem; }
+.responsive-table td { overflow-wrap: break-word; }
+.responsive-table td[data-label="Access"] { min-width: 10rem; }
+.cell-value { min-width: 0; }
+.cell-value .chip { max-width: 100%; overflow-wrap: break-word; }
+.responsive-table details { min-width: 0; max-width: 100%; }
+.responsive-table summary { min-height: 44px; padding: 0.5rem 0; cursor: pointer; }
+.responsive-table form { margin: 0; }
+.responsive-table form label { display: block; margin-top: 0.5rem; }
+.responsive-table button {
+  min-height: 44px; padding: 0.5rem 0.75rem; font: inherit; cursor: pointer;
+  color: var(--action); background: var(--bg); border: 1px solid var(--action); border-radius: 4px;
+}
+.task-actions { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 0.5rem; min-width: 9rem; }
+.task-actions > a { display: inline-flex; align-items: center; min-height: 44px; }
+.task-actions > details { flex-basis: 100%; }
+.task-actions input[type="file"] { font-size: 0.875rem; }
+@media (max-width: 60rem) {
+  .filter-bar { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .filter-bar[aria-label="Filter tasks"] .filter-field:first-child,
+  .filter-bar > .button { grid-column: 1 / -1; }
+  .summary-cards { gap: 0.5rem; }
+  .summary-cards .card { padding: 0.75rem 0.5rem; }
+  .summary-cards dt { font-size: 0.875rem; }
+  .responsive-table, .responsive-table tbody { display: block; width: 100%; }
+  .responsive-table thead {
+    position: absolute; width: 1px; height: 1px; overflow: hidden;
+    clip: rect(0 0 0 0); white-space: nowrap;
+  }
+  .responsive-table tr {
+    display: block; margin-bottom: 1rem; border: 1px solid var(--border); border-radius: 4px;
+  }
+  .responsive-table th[scope="row"] {
+    display: block; min-width: 0; overflow-wrap: anywhere; padding: 0.75rem;
+  }
+  .responsive-table td {
+    display: grid; grid-template-columns: minmax(5.5rem, 30%) minmax(0, 1fr);
+    gap: 0.75rem; padding: 0.5rem 0.75rem; min-width: 0;
+  }
+  .responsive-table td::before { content: attr(data-label); font-weight: 600; color: var(--muted); }
+  .responsive-table td:last-child { border-bottom: 0; }
+  .responsive-table td[data-label="Access"], .responsive-table td[data-label="Labels"] { min-width: 0; }
+  .responsive-table td > * { min-width: 0; }
+  .task-actions { min-width: 0; }
+}
+
+main.container { padding-top: 1.5rem; padding-bottom: 2rem; }
+@media (max-width: 22rem) {
+  .filter-bar { grid-template-columns: minmax(0, 1fr); }
+}
