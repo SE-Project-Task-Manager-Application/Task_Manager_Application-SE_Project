@@ -139,23 +139,26 @@ FIELD_LABELS = {
 
 COMMENT_EXCERPT_LENGTH = 80
 
+# Sharing events name other collaborators and their access level. Like the share list
+# itself, they are shown only to the task owner.
+OWNER_ONLY_ACTIONS = ("task.shared", "task.share_updated", "task.share_revoked")
+
 
 class ActivityService:
     """Builds a task's chronological activity history from its audit records (TM-F-034).
 
     Every event is written through AuditService in the same transaction as the change
     (SAD 4.3/4.4), so the history is read straight from the audit log, oldest first,
-    with UTC timestamps.
+    with UTC timestamps. Sharing events are included only for the task owner.
     """
 
     @staticmethod
     def for_task(actor, task):
         require_task_permission(actor, task, "view")
-        records = list(
-            AuditRecord.objects.filter(target_type="task", target_id=str(task.pk))
-            .select_related("actor")
-            .order_by("created_at", "id")
-        )
+        records = AuditRecord.objects.filter(target_type="task", target_id=str(task.pk))
+        if task.owner_id != actor.pk:
+            records = records.exclude(action__in=OWNER_ONLY_ACTIONS)
+        records = list(records.select_related("actor").order_by("created_at", "id"))
         user_ids = set()
         comment_ids = set()
         for record in records:

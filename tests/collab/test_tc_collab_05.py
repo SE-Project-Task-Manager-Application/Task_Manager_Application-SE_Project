@@ -263,3 +263,57 @@ def test_task_list_and_comments_page_link_to_history(client, team):
     assert _url(task) in client.get(reverse("tasks:list")).content.decode()
     comments_url = reverse("collab:task_comments", args=[task.pk])
     assert _url(task) in client.get(comments_url).content.decode()
+
+
+SHARING_ACTIONS = {"task.shared", "task.share_updated", "task.share_revoked"}
+
+
+@pytest.mark.parametrize("permission", ["viewer", "editor"])
+def test_sharing_events_are_owner_only(client, team, make_user, permission):
+    """Collaborators see the task's history but not who else it is shared with."""
+    pm, member, _ = team
+    other = make_user(email="other@example.com")
+    task = TaskService.create(pm, title="Shared history", assignees=[member])
+    TaskShareService.share(task, other, TaskShare.Permission.VIEWER, pm)
+    TaskShareService.share(task, other, TaskShare.Permission.EDITOR, pm)
+    TaskShareService.revoke(task, other, pm)
+    collaborator = make_user(email="collaborator@example.com")
+    TaskShareService.share(task, collaborator, permission, pm)
+    TaskService.set_status(member, task, Task.Status.IN_PROGRESS)
+    CommentService.add(member, task, "Working on it")
+
+    owner_actions = {entry.action for entry in ActivityService.for_task(pm, task)}
+    assert SHARING_ACTIONS <= owner_actions
+
+    collaborator_actions = _actions(collaborator, task)
+    assert not SHARING_ACTIONS & set(collaborator_actions)
+    assert collaborator_actions == [
+        "task.created",
+        "task.assignee_added",
+        "task.status_changed",
+        "task.commented",
+    ]
+
+    client.force_login(collaborator)
+    html = client.get(_url(task)).content.decode()
+    assert "Activity history: Shared history" in html
+    assert "other@example.com" not in html
+    assert "collaborator@example.com" not in html
+    assert "shared the task" not in html
+    assert "s access" not in html
+    assert "assigned member@example.com" in html
+    assert "changed the status from To do to In progress" in html
+
+    client.force_login(pm)
+    owner_html = client.get(_url(task)).content.decode()
+    assert "shared the task with other@example.com as Viewer" in owner_html
+    assert "removed other@example.com&#x27;s access" in owner_html
+    assert f"shared the task with collaborator@example.com as {permission.title()}" in owner_html
+
+
+def test_assignee_does_not_see_sharing_events(team):
+    """Assignees have task access too, but the share list is still owner-only."""
+    pm, member, _ = team
+    task = TaskService.create(pm, title="Assigned", assignees=[member])
+    TaskShareService.share(task, member, TaskShare.Permission.VIEWER, pm)
+    assert _actions(member, task) == ["task.created", "task.assignee_added"]
