@@ -91,7 +91,7 @@
                     </div>
                   {% endfor %}
                   {% if not task.is_deleted %}<details>
-                    <summary aria-label="Share {{ task.title }}">Share task</summary>
+                    <summary aria-label="Share task {{ task.title }}">Share task</summary>
                     <form method="post" action="{% url 'tasks:share' task.id %}">
                       {% csrf_token %}
                       <label for="share-email-{{ task.id }}">User email</label>
