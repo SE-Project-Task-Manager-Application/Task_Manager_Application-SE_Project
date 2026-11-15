@@ -7,7 +7,7 @@
 The submitted documents are the baseline and are not edited after submission. Every place where what we build or do differs from them is recorded here, with the reason, so it can be explained at the final demo.
 
 **When to add an entry:** any time the product, the schedule, the test approach or the architecture differs from the SRS, SAD or STP.  
-**How:** add the next ID (D-13, D-14, ...), keep each field to a sentence or two, and link the issue or PR where useful.  
+**How:** add the next ID (D-16, D-17, ...), keep each field to a sentence or two, and link the issue or PR where useful.
 **Status values:** *Applied* (it has happened), *Proposed* (the team has not confirmed it yet), *Open* (still to be decided).
 
 ---
@@ -130,6 +130,24 @@ The submitted documents are the baseline and are not edited after submission. Ev
 - **Why:** archiving with no way back would be a dead end for administrators.
 - **Impact:** none on the acceptance criteria (archived categories still do not appear when creating a task). One extra action and one extra audit action name, both covered by TC-Admin-02 (PR #77).
 - **Status:** Applied
+
+### D-14 - Submitted baseline metadata and approval records
+- **Logged:** 2026-11-16
+- **Document:** SRS cover, revision history and approvals; STP sections 1, 5, 11 and 15; SAD cover, filename and approvals.
+- **Planned:** the baseline version, revision history, review status and approval records identify the same submitted baseline.
+- **What we are doing instead:** preserve the submitted files unchanged and record corrections here, as confirmed by the project owner on 2026-11-16. The SRS cover is v1.1 dated 06-09-2026, but its revision history lists only v1.0 dated 05-09-2026; its status is Draft / For Approval and its coordinator approval row is blank. The STP is marked Draft - for review but repeatedly refers to an approved SRS v1.0. The SAD filename ends in `v1.pdf`, while its cover and revision history identify v1.1 dated 09-10-2026; it is marked Draft - for review, with blank signature/date fields.
+- **Why:** retaining the files preserves the record already submitted. The historical reason for the inconsistent fields is not recorded; this entry does not guess it or retroactively change the baseline.
+- **Impact:** refer to the actual SRS v1.1, STP v1.0 and SAD v1.1 when explaining the build, while retaining their original filenames and recorded status. STP section 15 contains QA Lead, Dev Lead and Course Coordinator names with 03-10-2026 dates, but these cells alone are not evidence of actual approval; no new approval or sign-off is asserted here.
+- **Status:** Applied (originals preserved and discrepancies recorded); actual baseline approval/version history remains Open pending source confirmation.
+
+### D-15 - Historical traceability status and current test evidence
+- **Logged:** 2026-11-16
+- **Document:** SRS section 8 and STP section 13 (RTM and results legend).
+- **Planned:** test results are recorded against each requirement as execution proceeds, with a consistent status legend.
+- **What we are doing instead:** retain both submitted RTMs as historical records. Each contains 34 requirement rows, all marked `N`. The SRS prose defines N/P/F (Not run/Pass/Fail), but its table header says N/P/A; no meaning for `A` is defined there. Use N/P/F when reporting subsequent results, with an evidence reference, exact revision, environment and limits; do not silently rewrite either submitted matrix.
+- **Why:** the owner requires the submitted originals to remain unchanged. The historical reason that results were not entered is not recorded. Current tests and reviews are separate evidence, rather than retroactive approval of the submitted documents.
+- **Impact:** `N` describes the submitted matrix, not proof that a requirement has never been tested. For example, [PR #94](https://github.com/SE-Project-Task-Manager-Application/Task_Manager_Application-SE_Project/pull/94) records 315 passing automated tests and lint on head `9b89423`, including three accessible-name regression cases, before its merge into dev. This is not a full acceptance or screen-reader sign-off: browser coverage, deployed SMTP/jobs/TLS checks and acceptance of Proposed deviations must be identified separately, and an unmet requirement must not be called merely unverified (or vice versa).
+- **Status:** Applied (historical status and legend discrepancy recorded); complete requirement-by-requirement acceptance evidence remains Open under [#93](https://github.com/SE-Project-Task-Manager-Application/Task_Manager_Application-SE_Project/issues/93).
 
 <!-- Copy a block above for each new deviation. -->
 
