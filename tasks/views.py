@@ -6,7 +6,7 @@ from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect
 from django.utils.dateparse import parse_date
 from django.views.decorators.http import require_POST
-from django.views.generic import FormView, ListView, UpdateView
+from django.views.generic import DetailView, FormView, ListView, UpdateView
 
 from accounts.services import require_task_permission
 
@@ -78,6 +78,16 @@ class TaskListView(LoginRequiredMixin, ListView):
             ("due_date", "Due date"),
         )
         return context
+
+
+class TaskDetailView(LoginRequiredMixin, DetailView):
+    template_name = "tasks/task_detail.html"
+    context_object_name = "task"
+
+    def get_object(self, queryset=None):
+        task = get_object_or_404(Task.objects.active(), pk=self.kwargs["pk"])
+        require_task_permission(self.request.user, task, "view")
+        return task
 
 
 class TaskEditView(LoginRequiredMixin, UpdateView):

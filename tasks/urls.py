@@ -9,6 +9,7 @@ urlpatterns = [
     path("", views.TaskListView.as_view(), name="list"),
     path("new/", views.TaskCreateView.as_view(), name="create"),
     path("<int:task_id>/share/", TaskShareView.as_view(), name="share"),
+    path("<int:pk>/", views.TaskDetailView.as_view(), name="detail"),
     path(
         "<int:task_id>/shares/<int:share_id>/revoke/",
         TaskShareRevokeView.as_view(),

@@ -179,6 +179,47 @@ def test_visibility_and_edit_access_follow_owner_assignment_and_share_permission
     assert task.pk not in editable_ids(stranger)
 
 
+@pytest.mark.parametrize("role", ["owner", "assignee", "viewer", "editor"])
+def test_task_detail_renders_description_for_every_viewer(client, make_user, role):
+    owner, assignee, viewer, editor = [make_user() for _ in range(4)]
+    task = Task.objects.create(
+        owner=owner, title="Read me", description="Viewer instructions"
+    )
+    TaskAssignment.objects.create(task=task, user=assignee, assigned_by=owner)
+    TaskShare.objects.create(task=task, user=viewer, permission="viewer", shared_by=owner)
+    TaskShare.objects.create(task=task, user=editor, permission="editor", shared_by=owner)
+    actor = {
+        "owner": owner,
+        "assignee": assignee,
+        "viewer": viewer,
+        "editor": editor,
+    }[role]
+    client.force_login(actor)
+
+    response = client.get(reverse("tasks:detail", args=[task.pk]))
+
+    assert response.status_code == 200
+    assert "Read me" in response.content.decode()
+    assert "Viewer instructions" in response.content.decode()
+
+
+def test_task_detail_denies_unrelated_user_and_revoked_viewer(client, make_user):
+    owner, viewer, stranger = [make_user() for _ in range(3)]
+    task = Task.objects.create(owner=owner, title="Private", description="Secret")
+    share = TaskShare.objects.create(
+        task=task, user=viewer, permission="viewer", shared_by=owner
+    )
+
+    client.force_login(stranger)
+    assert client.get(reverse("tasks:detail", args=[task.pk])).status_code == 403
+
+    client.force_login(viewer)
+    assert client.get(reverse("tasks:detail", args=[task.pk])).status_code == 200
+    assert client.get(reverse("tasks:edit", args=[task.pk])).status_code == 403
+    share.delete()
+    assert client.get(reverse("tasks:detail", args=[task.pk])).status_code == 403
+
+
 def test_soft_deleted_owner_keeps_shares_valid_and_protected_reference(client, make_user):
     admin, owner, recipient = make_user("admin"), make_user(), make_user()
     task = Task.objects.create(owner=owner, title="Retained share")
