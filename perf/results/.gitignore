@@ -1,0 +1,4 @@
+# Keep only the summary CSV from each run as evidence.
+*
+!.gitignore
+!*_stats.csv

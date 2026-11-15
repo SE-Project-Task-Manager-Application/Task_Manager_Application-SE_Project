@@ -17,6 +17,10 @@
 |  | `status` | One of `todo`, `in_progress`, or `done`. New tasks start as `todo`. |
 |  | `deleted_at` | Empty unless the task has been soft-deleted. |
 |  | `created_at` / `updated_at` | Creation time and most recent update time. |
+| **Comment** | `task` | Reference to the task commented on (TM-F-033). |
+|  | `author` | User who wrote the comment. Anyone who can view the task can comment. |
+|  | `body` | Required text, up to 2000 characters, stored without leading or trailing spaces. |
+|  | `created_at` | When the comment was posted (UTC). Each comment also writes a `task.commented` audit record with the comment's id, which the task activity history (TM-F-034) reads. |
 | **Task assignment** | `task` | Reference to the task. |
 |  | `user` | Reference to an assigned user. A task may have multiple assignment records, so it can have multiple assignees. |
 |  | `assigned_by` | User who made the assignment. |
@@ -29,7 +33,7 @@
 |  | `action` | Stable action name, such as `task.created`, `task.status_changed`, or `task.assignee_added`. |
 |  | `target_type` / `target_id` | The kind of record affected and its identifier, such as `task` and `42`. |
 |  | `created_at` | When the action happened. |
-|  | `details` | Optional information about the change, such as the old and new status or the assigned user. Never include passwords, tokens, or other secrets. |
+|  | `details` | Optional information about the change, such as the old and new status or the assigned user. Never include passwords, tokens, or other secrets. The task activity history (TM-F-034) is read from a task's audit records: `task.status_changed` stores `from` and `to`, and `task.updated` stores the names of the changed `fields`. Sharing events (`task.shared`, `task.share_updated`, `task.share_revoked`) are shown only to the task owner, like the share list. |
 | **System config** | `password_min_length` | Minimum length required for newly chosen passwords. |
 |  | `session_timeout_seconds` | Inactivity timeout applied to authenticated sessions, capped at 86,400 seconds (24 hours). |
 |  | `notifications_enabled` / `notification_sender` | Database-controlled notification defaults. |

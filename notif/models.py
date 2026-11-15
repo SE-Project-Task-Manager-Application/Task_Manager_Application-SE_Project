@@ -7,6 +7,7 @@ from django.db import models
 class Notification(models.Model):
     class Status(models.TextChoices):
         PENDING = "pending", "Pending"
+        PROCESSING = "processing", "Processing"
         SENT = "sent", "Sent"
         CANCELLED = "cancelled", "Cancelled"
         FAILED = "failed", "Failed"
