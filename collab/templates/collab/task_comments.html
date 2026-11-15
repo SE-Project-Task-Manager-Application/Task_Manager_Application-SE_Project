@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Comments: {{ task.title }}{% endblock %}
 {% block content %}
-  <p><a href="{% url 'tasks:list' %}">Back to tasks</a></p>
+  <p><a href="{% url 'tasks:list' %}">Back to tasks</a> · <a href="{% url 'collab:task_activity' task.pk %}">Activity history</a></p>
   <h1>Comments: {{ task.title }}</h1>
 
   <section aria-labelledby="comments-heading">

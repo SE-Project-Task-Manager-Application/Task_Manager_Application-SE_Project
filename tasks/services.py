@@ -124,6 +124,7 @@ class TaskService:
         invalid = set(changes) - allowed
         if invalid:
             raise ValidationError(f"Unsupported task fields: {', '.join(sorted(invalid))}.")
+        before = {field: getattr(locked, field) for field in changes}
         for field, value in changes.items():
             setattr(locked, field, value.strip() if field == "title" and value else value)
         locked.version += 1
@@ -133,7 +134,14 @@ class TaskService:
             if any(label.is_archived and label.pk not in existing_label_ids for label in labels):
                 raise ValidationError("Archived labels cannot be assigned.")
         locked.save()
+        changed_fields = [
+            field
+            for field in ("title", "description", "due_date", "priority")
+            if field in before and before[field] != getattr(locked, field)
+        ]
         if labels is not None:
+            if set(locked.labels.values_list("pk", flat=True)) != {label.pk for label in labels}:
+                changed_fields.append("labels")
             locked.labels.set(labels)
         if assignees is not None:
             existing_assignments = {
@@ -153,7 +161,23 @@ class TaskService:
             for user in assignees:
                 if user.pk not in existing_assignments:
                     TaskService.assign(locked, user, actor)
-        AuditService.record(actor, "task.updated", locked, details={"version": locked.version})
+        # TM-F-034: the activity history shows what changed. A status change gets its own
+        # event; any other edit lists the fields that changed.
+        status_changed = "status" in before and before["status"] != locked.status
+        if status_changed:
+            AuditService.record(
+                actor,
+                "task.status_changed",
+                locked,
+                details={"from": before["status"], "to": locked.status, "version": locked.version},
+            )
+        if changed_fields or not status_changed:
+            AuditService.record(
+                actor,
+                "task.updated",
+                locked,
+                details={"version": locked.version, "fields": changed_fields},
+            )
         if locked.shares.exists():
             collaborators = {
                 share.user_id: share.user

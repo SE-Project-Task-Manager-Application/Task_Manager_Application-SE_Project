@@ -9,7 +9,7 @@ from tasks.models import Task
 
 from .forms import CommentForm, TaskShareForm
 from .models import TaskShare
-from .services import CommentService, TaskShareService
+from .services import ActivityService, CommentService, TaskShareService
 
 
 class TaskShareView(LoginRequiredMixin, View):
@@ -94,3 +94,18 @@ class TaskCommentsView(LoginRequiredMixin, View):
                 messages.success(request, "Comment added.")
                 return redirect("collab:task_comments", pk=task.pk)
         return self._render(request, task, form, status=400)
+
+
+class TaskActivityView(LoginRequiredMixin, View):
+    """Chronological activity history for a task (TM-F-034).
+
+    Anyone who can view the task sees its history, including after it is deleted, so
+    the deletion itself is visible. A user without access gets 403 (SAD 4.4).
+    """
+
+    template_name = "collab/task_activity.html"
+
+    def get(self, request, pk):
+        task = get_object_or_404(Task, pk=pk)
+        entries = ActivityService.for_task(request.user, task)
+        return render(request, self.template_name, {"task": task, "entries": entries})
