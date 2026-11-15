@@ -107,8 +107,8 @@
                 {% endif %}
               </td>
               <td>
-                <a href="{% url 'tasks:detail' task.pk %}">View</a>
                 {% if not task.is_deleted %}
+                  <a href="{% url 'tasks:detail' task.pk %}">View</a>
                   <details>
                     <summary>Attachments</summary>
                     {% for attachment in task.attachments.all %}
