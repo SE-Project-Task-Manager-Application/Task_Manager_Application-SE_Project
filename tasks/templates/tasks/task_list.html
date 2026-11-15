@@ -3,9 +3,12 @@
 {% block content %}
   <h1>Tasks</h1>
   <p><a class="button-link" href="{% url 'tasks:create' %}">New task</a></p>
-  <form method="get" aria-label="Filter tasks">
+  <form method="get" aria-label="Filter tasks" class="filter-bar">
+    <div class="filter-field">
     <label for="task-search">Search</label>
     <input id="task-search" name="q" value="{{ request.GET.q }}" type="search">
+    </div>
+    <div class="filter-field">
     <label for="task-status">Status</label>
     <select id="task-status" name="status">
       <option value="">All active statuses</option>
@@ -13,6 +16,8 @@
         <option value="{{ value }}" {% if request.GET.status == value %}selected{% endif %}>{{ label }}</option>
       {% endfor %}
     </select>
+    </div>
+    <div class="filter-field">
     <label for="task-priority">Priority</label>
     <select id="task-priority" name="priority">
       <option value="">All priorities</option>
@@ -20,6 +25,8 @@
         <option value="{{ value }}" {% if request.GET.priority == value %}selected{% endif %}>{{ label }}</option>
       {% endfor %}
     </select>
+    </div>
+    <div class="filter-field">
     <label for="task-label">Label</label>
     <select id="task-label" name="label">
       <option value="">All labels</option>
@@ -27,54 +34,63 @@
         <option value="{{ label.name }}" {% if request.GET.label == label.name %}selected{% endif %}>{{ label.name }}</option>
       {% endfor %}
     </select>
+    </div>
+    <div class="filter-field">
     <label for="task-due-date">Due date</label>
     <input id="task-due-date" name="due_date" type="date" value="{{ request.GET.due_date }}">
+    </div>
+    <div class="filter-field">
     <label for="task-sort">Sort by</label>
     <select id="task-sort" name="sort">
       {% for value, label in sort_choices %}
         <option value="{{ value }}" {% if request.GET.sort == value or not request.GET.sort and value == "created_at" %}selected{% endif %}>{{ label }}</option>
       {% endfor %}
     </select>
+    </div>
+    <div class="filter-field">
     <label for="task-direction">Direction</label>
     <select id="task-direction" name="direction">
       <option value="desc" {% if request.GET.direction != "asc" %}selected{% endif %}>Descending</option>
       <option value="asc" {% if request.GET.direction == "asc" %}selected{% endif %}>Ascending</option>
     </select>
+    </div>
+    <div class="filter-field">
     <label for="task-show">Show</label>
     <select id="task-show" name="show">
       <option value="active" {% if request.GET.show != "all" and request.GET.show != "deleted" %}selected{% endif %}>Active tasks</option>
       <option value="all" {% if request.GET.show == "all" %}selected{% endif %}>All active tasks</option>
       <option value="deleted" {% if request.GET.show == "deleted" %}selected{% endif %}>Deleted tasks</option>
     </select>
-    <button type="submit">Filter</button>
+    </div>
+    <button type="submit" class="button">Filter</button>
   </form>
 
   {% if tasks %}
     <div class="table-wrap">
-      <table>
+      <table class="responsive-table" role="table">
         <caption class="visually-hidden">Your tasks</caption>
-        <thead>
-          <tr>
-            <th scope="col">Title</th>
-            <th scope="col">Status</th>
-            <th scope="col">Priority</th>
-            <th scope="col">Due</th>
-            <th scope="col">Assigned to</th>
-            <th scope="col">Labels</th>
-            <th scope="col">Access</th>
-            <th scope="col">Actions</th>
+        <thead role="rowgroup">
+          <tr role="row">
+            <th scope="col" role="columnheader">Title</th>
+            <th scope="col" role="columnheader">Status</th>
+            <th scope="col" role="columnheader">Priority</th>
+            <th scope="col" role="columnheader">Due</th>
+            <th scope="col" role="columnheader">Assigned to</th>
+            <th scope="col" role="columnheader">Labels</th>
+            <th scope="col" role="columnheader">Access</th>
+            <th scope="col" role="columnheader">Actions</th>
           </tr>
         </thead>
-        <tbody>
+        <tbody role="rowgroup">
           {% for task in tasks %}
-            <tr>
-              <th scope="row">{{ task.title }}</th>
-              <td>{{ task.get_status_display }}</td>
-              <td>{{ task.get_priority_display }}</td>
-              <td>{% if task.due_date %}{{ task.due_date|date:"Y-m-d H:i" }}{% else %}&ndash;{% endif %}</td>
-              <td>{% for person in task.assignees.all %}{{ person.email }}{% if not forloop.last %}, {% endif %}{% empty %}&ndash;{% endfor %}</td>
-              <td>{% for label in task.labels.all %}<span class="chip">{{ label.name }}</span>{% empty %}&ndash;{% endfor %}</td>
-              <td>
+            <tr role="row">
+              <th scope="row" role="rowheader">{{ task.title }}</th>
+              <td data-label="Status" role="cell"><div class="cell-value">{{ task.get_status_display }}</div></td>
+              <td data-label="Priority" role="cell"><div class="cell-value">{{ task.get_priority_display }}</div></td>
+              <td data-label="Due" role="cell"><div class="cell-value">{% if task.due_date %}{{ task.due_date|date:"Y-m-d H:i" }}{% else %}&ndash;{% endif %}</div></td>
+              <td data-label="Assigned to" role="cell"><div class="cell-value">{% for person in task.assignees.all %}{{ person.email }}{% if not forloop.last %}, {% endif %}{% empty %}&ndash;{% endfor %}</div></td>
+              <td data-label="Labels" role="cell"><div class="cell-value">{% for label in task.labels.all %}<span class="chip">{{ label.name }}</span>{% empty %}&ndash;{% endfor %}</div></td>
+              <td data-label="Access" role="cell"><div class="cell-value">
                 {% if task.owner_id == user.id %}
                   <strong>Owner</strong>
                 {% else %}
@@ -105,8 +121,9 @@
                     </form>
                   </details>{% endif %}
                 {% endif %}
-              </td>
-              <td>
+              </div></td>
+              <td data-label="Actions" role="cell"><div class="cell-value">
+                <div class="task-actions">
                 <a href="{% url 'tasks:detail' task.pk %}">View</a>
                 {% if not task.is_deleted %}
                   <details>
@@ -157,7 +174,8 @@
                     </form>
                   {% endif %}
                 {% endif %}
-              </td>
+                </div>
+              </div></td>
             </tr>
           {% endfor %}
         </tbody>
