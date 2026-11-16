@@ -124,8 +124,8 @@
               </div></td>
               <td data-label="Actions" role="cell"><div class="cell-value">
                 <div class="task-actions">
-                <a href="{% url 'tasks:detail' task.pk %}">View</a>
                 {% if not task.is_deleted %}
+                  <a href="{% url 'tasks:detail' task.pk %}">View</a>
                   <details>
                     <summary>Attachments</summary>
                     {% for attachment in task.attachments.all %}
