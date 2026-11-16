@@ -1,0 +1,192 @@
+# Deviations from Submitted Documents
+
+**Project:** Task Manager Application  
+**Baseline documents:** SRS, SAD v1.1 (09-10-2026), STP v1.0 (28-09-2026), and the course Part-2 deliverables schedule  
+**Owner:** Syed (Scrum Master)
+
+The submitted documents are the baseline and are not edited after submission. Every place where what we build or do differs from them is recorded here, with the reason, so it can be explained at the final demo.
+
+**When to add an entry:** any time the product, the schedule, the test approach or the architecture differs from the SRS, SAD or STP.  
+**How:** add the next ID (D-16, D-17, ...), keep each field to a sentence or two, and link the issue or PR where useful.
+**Status values:** *Applied* (it has happened), *Proposed* (the team has not confirmed it yet), *Accepted* (accepted by the project owner without changes), *Open* (still to be decided).
+
+---
+
+## 1. Deviations
+
+### D-01 - Test schedule
+- **Logged:** 2026-10-11
+- **Document:** STP, Schedule
+- **Planned:** test environment setup 03-10-2026; test execution 03-10-2026 to 20-10-2026; UAT / final review 31-10-2026.
+- **What we are doing instead:** the test environment is built in Sprint 0 (from 10-10-2026, tasks S-06 and S-07a). Test execution runs inside Sprint 1 and Sprint 2 (19-10-2026 to 30-10-2026), at the same time as development, with each story tested as it lands. Final review happens before the 30-10-2026 development freeze.
+- **Why:** no build existed on 03-10-2026, and the course Part-2 schedule fixes the sprint weeks and the freeze date.
+- **Impact:** the test window is shorter and overlaps development. Every story carries a test-case checklist so coverage is still tracked in the RTM.
+- **Status:** Applied
+
+### D-02 - Development schedule compared with the course schedule
+- **Logged:** 2026-10-11
+- **Document:** Course Part-2 deliverables (not the SRS, SAD or STP; logged for transparency)
+- **Planned (course):** dry run 12-10 to 16-10; Sprint 1 19-10 to 23-10; Sprint 2 26-10 to 30-10.
+- **What we are doing instead:** development starts on 10-10-2026 with a Sprint 0 (foundation and dry run, 10-10 to 16-10). Sprint 2 runs from 23-10 to 30-10.
+- **Why:** the extra days give the developers more implementation time.
+- **Impact:** none on the deliverable dates. The 1-minute video is still due 23-10, the 2-minute video and the freeze are still 30-10.
+- **Status:** Applied
+
+### D-03 - Sample projects in the test data
+- **Logged:** 2026-10-11
+- **Document:** STP, Test Environment / Test Data
+- **Planned:** seed data with sample projects and tasks in each status.
+- **What we are doing instead:** seed data contains test accounts, sample tasks and sample labels only.
+- **Why:** no requirement defines a Projects entity (also listed as a SAD open issue, see section 2), so none is being built.
+- **Impact:** none on any of the 34 requirements.
+- **Status:** Accepted (by the project owner, 2026-11-16)
+
+### D-04 - Monitoring
+- **Logged:** 2026-10-11
+- **Document:** SAD, section 4.4 (Logging and monitoring) and section 3.6
+- **Planned:** monitor response time, error rate, authentication failures and lockouts, notification failures, job failures, and database/storage health.
+- **What we are doing instead:** application logging plus the audit and activity records. No separate monitoring tooling is set up.
+- **Why:** there is no production deployment in this course build, and the time goes to the 34 requirements.
+- **Impact:** response-time and concurrency targets (TM-NF-001, TM-NF-003) are verified by test runs rather than live monitoring.
+- **Status:** Accepted (by the project owner, 2026-11-16)
+
+### D-05 - Attachment malware scanning
+- **Logged:** 2026-10-11
+- **Document:** SAD, sections 3.9 and 4.1 (StorageModule); SRS TM-F-022 ("scanned before storage")
+- **Planned:** attachments are validated and scanned for malware before storage.
+- **What we are doing instead:** a scanner interface with a stub behind it: file-type and size checks plus detection of the EICAR test file. No full antivirus engine is integrated.
+- **Why:** the SAD leaves the scanning mechanism open, and a real scanner needs infrastructure outside this course build.
+- **Impact:** weaker protection than a real scanner. The interface lets a real scanner replace the stub later.
+- **Status:** Accepted (by the project owner, 2026-11-16; remove this entry if a real scanner is used)
+
+### D-06 - Task assignees stored as assignment records
+- **Logged:** 2026-10-15
+- **Document:** SAD, section 4.1 (TaskModule data: "Task (assignee, deleted_at)") and the data-model line in S-04
+- **Planned:** a single `assignee` on the Task.
+- **What we are doing instead:** a Task has one `owner` and any number of assignees, stored as TaskAssignment rows (task, user, assigned_by, assigned_at), as agreed in `docs/schema.md`.
+- **Why:** the team agreed that a task may have several assignees and that who assigned, and when, must be recorded.
+- **Impact:** assignment and reassignment (TC-Task-01/02) work on assignment records. Anything that read "the assignee" reads the task's assignment list instead.
+- **Status:** Applied
+
+### D-07 - Persistent scheduled delivery for due reminders and shared updates
+- **Logged:** 2026-10-15
+- **Document:** SAD, section 4.1 (NotifModule data: "Notification / delivery status") and section 4.3
+- **Planned:** notifications are delivered asynchronously and their delivery status is persisted.
+- **What we are doing instead:** task due-date reminders are persisted and retried by `python manage.py send_due_reminders`, scheduled once per minute. A reminder is eligible 24 hours before its task is due; each assignee receives one, or the owner receives it when the task has no assignees. A failed reminder is retried for up to 120 failed attempts (up to two hours at this schedule), then marked failed. Shared-task updates are also persisted and retried by `python manage.py deliver_notifications`, scheduled every five minutes. Assignment and account e-mails still use `NotificationService.send()` directly after their database transactions; the legacy in-memory `enqueue()` and `deliver_pending()` are not used for those messages.
+- **Why:** TM-F-014 adds persistent due reminders, and Issue #24 adds persistent notifications for collaborator updates; other notification stories still use direct delivery.
+- **Impact:** due reminders and shared-task notices survive process restarts and retry after mail failures. Due reminders stop retrying after the documented limit. Assignment and account mail can still wait up to `EMAIL_TIMEOUT` (5 seconds), and failed direct sends are not retried; see D-08 and D-09.
+- **Status:** Applied (TM-F-014, 2026-11-07; Issue #24); remaining direct-send behavior is recorded in D-08 and D-09.
+
+### D-08 - Registration confirmation email is sent synchronously
+- **Logged:** 2026-10-29
+- **Document:** Issue #10 / ADR-003
+- **Planned:** Registration confirmation e-mail is queued so the request does not wait for the mail server.
+- **What we are doing instead:** Registration sends the confirmation e-mail directly after creating the account. If the mail server is unavailable, the account remains created, but the request may wait up to `EMAIL_TIMEOUT` (5 seconds). The existing in-memory queue has no background delivery runner, so using `enqueue()` alone would not deliver the e-mail.
+- **Why:** The scheduled delivery job is currently scoped to persisted task due reminders (D-07); registration confirmation has not been migrated to that queue.
+- **Impact:** Registration is best-effort: a mail failure is logged, the account stays active, and delivery is not retried.
+- **Status:** Accepted (by the project owner, 2026-11-16)
+
+### D-09 - Account e-mails sent directly; profile pictures on local disk
+- **Logged:** 2026-11-06
+- **Document:** SAD, ADR-003 (isolated, asynchronous notification delivery) and section 4.1 (StorageModule); SRS TM-F-004 and TM-F-005
+- **Planned:** account e-mails are queued and delivered by a background job; stored files go through validation and scanning.
+- **What we are doing instead:** password-reset and e-mail-change messages are sent directly through `NotificationService.send()`, which never raises and times out after 5 seconds. Profile pictures are stored on local disk (`MEDIA_ROOT`) and served through a login-required view. An upload is checked by extension, the 10 MB limit and the file's first bytes; it is not decoded or virus-scanned.
+- **Why:** the scheduled delivery job is currently scoped to task due reminders (D-07); account mail has not been migrated to it, and the file-storage backend is an open SAD issue.
+- **Impact:** a slow mail server can delay these requests by up to 5 seconds, and a failed mail is not retried (for an e-mail change the user is told when sending failed). File checks are weaker than a real scanner (see D-05).
+- **Status:** Accepted (by the project owner, 2026-11-16)
+
+### D-10 - No screen to change a user's role
+- **Logged:** 2026-11-06
+- **Document:** SRS 2.3 (the Administrator manages users and roles) and TM-F-050; SAD, section 4.1 (AdminModule)
+- **Planned:** the Administrator can manage users and their roles.
+- **What we are doing instead:** the user-management page lets the Administrator view, disable, enable and soft-delete accounts, as TM-F-050 lists. No screen changes a user's role, and the Django admin site does not register the User model at the time of writing. New accounts get the Team Member role; other roles come from the seed data or `createsuperuser`. Deleted accounts are soft-deleted and their e-mail address stays reserved.
+- **Why:** TM-F-050 only requires view, disable and delete, and the time went to the 34 requirements.
+- **Impact:** Project Manager and Administrator accounts cannot be created from the UI. The demo uses the seeded accounts.
+- **Status:** Accepted (by the project owner, 2026-11-16)
+
+### D-11 - Audit log does not record every login
+- **Logged:** 2026-11-06
+- **Document:** SAD, section 4.2 (Sequence 1 records login success, login failure and account lock); SRS TM-F-052
+- **Planned:** security events, including successful and failed logins, appear in the audit log.
+- **What we are doing instead:** audit records exist for account lockouts, user disable/enable/delete, and task events (created, updated, deleted, restored, assignment changes). Successful logins, failed attempts below the lockout threshold, and logouts are not recorded.
+- **Why:** TM-F-003 only requires the lockout to be logged, and the audit-log story only requires actor, action, timestamp, search and immutability.
+- **Impact:** the audit log is thinner than Sequence 1 shows. TM-F-052 is still met (searchable, with actor, action and timestamp, and immutable).
+- **Status:** Accepted (by the project owner, 2026-11-16)
+
+### D-12 - Developers and testers swapped for some stories
+- **Logged:** 2026-11-06
+- **Document:** STP, section 9 (Roles and Responsibilities)
+- **Planned:** developers implement and fix defects; test engineers design and run the test cases.
+- **What we are doing instead:** for several stories the test engineers wrote the code and the developers tested it. The person who wrote a story never tests it.
+- **Why:** the work was divided this way so that every story is verified independently.
+- **Impact:** none on the requirements. Each story's issue or pull request records who built it and who tested it.
+- **Status:** Applied
+
+### D-13 - Category restore action
+- **Logged:** 2026-11-11
+- **Document:** SRS 4.6, TM-F-051 (Manage categories)
+- **Planned:** the Administrator can create, rename or archive global categories.
+- **What we are doing instead:** the same, plus a Restore action that makes an archived category active again. Restoring writes a `label.restored` audit record. No screen deletes a category.
+- **Why:** archiving with no way back would be a dead end for administrators.
+- **Impact:** none on the acceptance criteria (archived categories still do not appear when creating a task). One extra action and one extra audit action name, both covered by TC-Admin-02 (PR #77).
+- **Status:** Applied
+
+### D-14 - Submitted baseline metadata and approval records
+- **Logged:** 2026-11-16
+- **Document:** SRS cover, revision history and approvals; STP sections 1, 5, 11 and 15; SAD cover, filename and approvals.
+- **Planned:** the baseline version, revision history, review status and approval records identify the same submitted baseline.
+- **What we are doing instead:** preserve the submitted files unchanged and record corrections here, as confirmed by the project owner on 2026-11-16. The SRS cover is v1.1 dated 06-09-2026, but its revision history lists only v1.0 dated 05-09-2026; its status is Draft / For Approval and its coordinator approval row is blank. The STP is marked Draft - for review but repeatedly refers to an approved SRS v1.0. The SAD filename ends in `v1.pdf`, while its cover and revision history identify v1.1 dated 09-10-2026; it is marked Draft - for review, with blank signature/date fields.
+- **Why:** retaining the files preserves the record already submitted. The historical reason for the inconsistent fields is not recorded; this entry does not guess it or retroactively change the baseline.
+- **Impact:** refer to the actual SRS v1.1, STP v1.0 and SAD v1.1 when explaining the build, while retaining their original filenames and recorded status. STP section 15 contains QA Lead, Dev Lead and Course Coordinator names with 03-10-2026 dates, but these cells alone are not evidence of actual approval; no new approval or sign-off is asserted here.
+- **Status:** Applied (originals preserved and discrepancies recorded); actual baseline approval/version history remains Open pending source confirmation.
+
+### D-15 - Historical traceability status and current test evidence
+- **Logged:** 2026-11-16
+- **Document:** SRS section 8 and STP section 13 (RTM and results legend).
+- **Planned:** test results are recorded against each requirement as execution proceeds, with a consistent status legend.
+- **What we are doing instead:** retain both submitted RTMs as historical records. Each contains 34 requirement rows, all marked `N`. The SRS prose defines N/P/F (Not run/Pass/Fail), but its table header says N/P/A; no meaning for `A` is defined there. Use N/P/F when reporting subsequent results, with an evidence reference, exact revision, environment and limits; do not silently rewrite either submitted matrix.
+- **Why:** the owner requires the submitted originals to remain unchanged. The historical reason that results were not entered is not recorded. Current tests and reviews are separate evidence, rather than retroactive approval of the submitted documents.
+- **Impact:** `N` describes the submitted matrix, not proof that a requirement has never been tested. For example, [PR #94](https://github.com/SE-Project-Task-Manager-Application/Task_Manager_Application-SE_Project/pull/94) records 315 passing automated tests and lint on head `9b89423`, including three accessible-name regression cases, before its merge into dev. This is not a full acceptance or screen-reader sign-off: browser coverage, deployed SMTP/jobs/TLS checks and acceptance of Proposed deviations must be identified separately, and an unmet requirement must not be called merely unverified (or vice versa).
+- **Status:** Applied (historical status and legend discrepancy recorded); complete requirement-by-requirement acceptance evidence remains Open under [#93](https://github.com/SE-Project-Task-Manager-Application/Task_Manager_Application-SE_Project/issues/93).
+
+<!-- Copy a block above for each new deviation. -->
+
+---
+
+## 2. Decisions on the SAD open issues (SAD section 4.6)
+
+These are not deviations by themselves, because the SAD left them open. Each row follows the SAD's own list so every open issue has a recorded answer.
+
+| SAD open issue | Decision | Status |
+|---|---|---|
+| Database | PostgreSQL 16, run in Docker Compose for development; the CI test job uses a `postgres:16` service. Django connects through the `DB_*` variables. | Applied |
+| Test email server | MailHog, as named in the STP | Applied |
+| Background jobs (reminders, queued e-mail) | `send_due_reminders` runs once per minute. It queues reminders with a 24-hour lead time for every assignee, or the owner if unassigned; failures are retried for up to 120 attempts (up to two hours), then marked failed. No Celery. | Applied |
+| Attachment scanning | A scanner stub behind an interface (extension and size checks, EICAR test file); no real antivirus integration (see D-05) | Accepted (project owner, 2026-11-16) |
+| REST/JSON endpoints | Not built; server-rendered Django views only | Accepted (project owner, 2026-11-16) |
+| Who can recover a soft-deleted task | The task owner | Applied |
+| Who can assign tasks | The Project Manager role, to any active user (enforced in `TaskService`) | Applied |
+| Who can change collaborator permissions | The task owner (per TM-F-030 and TM-F-032) | Accepted (project owner, 2026-11-16) |
+| Task status values | `todo`, `in_progress`, and `done`, as agreed by Dev A and Dev B and recorded in `docs/schema.md` | Applied |
+| Password complexity policy (TM-F-001) | Three of Django's default validators apply to registration, reset and change (not a common password, not entirely numeric, not too similar to the user's details), plus a custom `DatabasePasswordLengthValidator` that enforces the admin-configurable `SystemConfig.password_min_length` (default 8). The seed password is set directly and bypasses them. | Accepted (project owner, 2026-11-16) |
+| Supported browser matrix | To be defined before UI testing | Open |
+| Monitoring, backup and at-rest encryption | Not implemented in the course build; deployment-level controls (see D-04) | Accepted (project owner, 2026-11-16) |
+| Rate limiting for login and file upload | Not implemented in application code (a reverse-proxy concern). Account lockout (TM-F-003) and the 10 MB limit (TM-F-022) still apply | Accepted (project owner, 2026-11-16) |
+| Whether "projects" need their own entity | No Projects entity is built (see D-03) | Accepted (project owner, 2026-11-16) |
+
+---
+
+## 3. Other decisions and gaps not covered by the documents
+
+| Item | Decision | Status |
+|---|---|---|
+| How TM-SR-001 (TLS 1.2+) is verified | Django requires HTTPS in production and emits one-year HSTS; the production ingress must accept TLS 1.2+ and reject or redirect plaintext. HTTP remains enabled locally. | Applied (application settings; ingress verification requires a deployed staging/production endpoint) |
+| Final schedule | Pull requests were still being merged after the 30-10-2026 freeze date (for example migrations generated on 2026-11-02 and 2026-11-05). Record the agreed final dates in D-01 and D-02, or log the overrun as a deviation | Open |
+
+---
+
+## 4. Scope cut or deferred
+
+None so far.
+
+If velocity requires cutting scope, the agreed order is: TM-F-031, TM-F-034, TM-F-041, then TM-F-051 (all Low priority in the SRS). Log each cut here with the date, the reason and the requirement ID.
