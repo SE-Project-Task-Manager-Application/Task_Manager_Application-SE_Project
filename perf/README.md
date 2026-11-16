@@ -39,5 +39,5 @@ For TC-Scale-01, run the same command with `-u 20 -r 2` and `--csv perf/results/
 Options: `PERF_USERS` (comma-separated emails, default the seeded member and PM) and `PERF_PASSWORD` (default `SEPROG123`) set which accounts log in.
 
 ## Notes
-- `runserver` is Django's development server with `DEBUG=True`, so production (gunicorn, `DEBUG=False`) should be at least as fast. This is recorded as a limitation in the report.
+- Saved results are historical local development-server measurements, not production evidence or a guarantee that production will be faster. The reports separate CSV facts, reported settings and metadata that was not retained. Record the exact app SHA, timestamps, environment, effective command and process exit log with any new run; do not overwrite historical CSVs without labeling the new evidence.
 - Each simulated user edits only a task it created, so concurrent edits never hit the stale-version check (TM-F-011).
