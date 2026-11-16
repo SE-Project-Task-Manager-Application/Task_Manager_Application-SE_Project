@@ -8,7 +8,7 @@ The submitted documents are the baseline and are not edited after submission. Ev
 
 **When to add an entry:** any time the product, the schedule, the test approach or the architecture differs from the SRS, SAD or STP.  
 **How:** add the next ID (D-16, D-17, ...), keep each field to a sentence or two, and link the issue or PR where useful.
-**Status values:** *Applied* (it has happened), *Proposed* (the team has not confirmed it yet), *Open* (still to be decided).
+**Status values:** *Applied* (it has happened), *Proposed* (the team has not confirmed it yet), *Accepted* (accepted by the project owner without changes), *Open* (still to be decided).
 
 ---
 
@@ -39,7 +39,7 @@ The submitted documents are the baseline and are not edited after submission. Ev
 - **What we are doing instead:** seed data contains test accounts, sample tasks and sample labels only.
 - **Why:** no requirement defines a Projects entity (also listed as a SAD open issue, see section 2), so none is being built.
 - **Impact:** none on any of the 34 requirements.
-- **Status:** Proposed (to be confirmed by the team)
+- **Status:** Accepted (by the project owner, 2026-11-16)
 
 ### D-04 - Monitoring
 - **Logged:** 2026-10-11
@@ -48,7 +48,7 @@ The submitted documents are the baseline and are not edited after submission. Ev
 - **What we are doing instead:** application logging plus the audit and activity records. No separate monitoring tooling is set up.
 - **Why:** there is no production deployment in this course build, and the time goes to the 34 requirements.
 - **Impact:** response-time and concurrency targets (TM-NF-001, TM-NF-003) are verified by test runs rather than live monitoring.
-- **Status:** Proposed (to be confirmed by the team)
+- **Status:** Accepted (by the project owner, 2026-11-16)
 
 ### D-05 - Attachment malware scanning
 - **Logged:** 2026-10-11
@@ -57,7 +57,7 @@ The submitted documents are the baseline and are not edited after submission. Ev
 - **What we are doing instead:** a scanner interface with a stub behind it: file-type and size checks plus detection of the EICAR test file. No full antivirus engine is integrated.
 - **Why:** the SAD leaves the scanning mechanism open, and a real scanner needs infrastructure outside this course build.
 - **Impact:** weaker protection than a real scanner. The interface lets a real scanner replace the stub later.
-- **Status:** Proposed (to be confirmed by the team; remove this entry if a real scanner is used)
+- **Status:** Accepted (by the project owner, 2026-11-16; remove this entry if a real scanner is used)
 
 ### D-06 - Task assignees stored as assignment records
 - **Logged:** 2026-10-15
@@ -84,7 +84,7 @@ The submitted documents are the baseline and are not edited after submission. Ev
 - **What we are doing instead:** Registration sends the confirmation e-mail directly after creating the account. If the mail server is unavailable, the account remains created, but the request may wait up to `EMAIL_TIMEOUT` (5 seconds). The existing in-memory queue has no background delivery runner, so using `enqueue()` alone would not deliver the e-mail.
 - **Why:** The scheduled delivery job is currently scoped to persisted task due reminders (D-07); registration confirmation has not been migrated to that queue.
 - **Impact:** Registration is best-effort: a mail failure is logged, the account stays active, and delivery is not retried.
-- **Status:** Proposed (to be confirmed by the team)
+- **Status:** Accepted (by the project owner, 2026-11-16)
 
 ### D-09 - Account e-mails sent directly; profile pictures on local disk
 - **Logged:** 2026-11-06
@@ -93,7 +93,7 @@ The submitted documents are the baseline and are not edited after submission. Ev
 - **What we are doing instead:** password-reset and e-mail-change messages are sent directly through `NotificationService.send()`, which never raises and times out after 5 seconds. Profile pictures are stored on local disk (`MEDIA_ROOT`) and served through a login-required view. An upload is checked by extension, the 10 MB limit and the file's first bytes; it is not decoded or virus-scanned.
 - **Why:** the scheduled delivery job is currently scoped to task due reminders (D-07); account mail has not been migrated to it, and the file-storage backend is an open SAD issue.
 - **Impact:** a slow mail server can delay these requests by up to 5 seconds, and a failed mail is not retried (for an e-mail change the user is told when sending failed). File checks are weaker than a real scanner (see D-05).
-- **Status:** Proposed (to be confirmed by the team)
+- **Status:** Accepted (by the project owner, 2026-11-16)
 
 ### D-10 - No screen to change a user's role
 - **Logged:** 2026-11-06
@@ -102,7 +102,7 @@ The submitted documents are the baseline and are not edited after submission. Ev
 - **What we are doing instead:** the user-management page lets the Administrator view, disable, enable and soft-delete accounts, as TM-F-050 lists. No screen changes a user's role, and the Django admin site does not register the User model at the time of writing. New accounts get the Team Member role; other roles come from the seed data or `createsuperuser`. Deleted accounts are soft-deleted and their e-mail address stays reserved.
 - **Why:** TM-F-050 only requires view, disable and delete, and the time went to the 34 requirements.
 - **Impact:** Project Manager and Administrator accounts cannot be created from the UI. The demo uses the seeded accounts.
-- **Status:** Proposed (to be confirmed by the team)
+- **Status:** Accepted (by the project owner, 2026-11-16)
 
 ### D-11 - Audit log does not record every login
 - **Logged:** 2026-11-06
@@ -111,7 +111,7 @@ The submitted documents are the baseline and are not edited after submission. Ev
 - **What we are doing instead:** audit records exist for account lockouts, user disable/enable/delete, and task events (created, updated, deleted, restored, assignment changes). Successful logins, failed attempts below the lockout threshold, and logouts are not recorded.
 - **Why:** TM-F-003 only requires the lockout to be logged, and the audit-log story only requires actor, action, timestamp, search and immutability.
 - **Impact:** the audit log is thinner than Sequence 1 shows. TM-F-052 is still met (searchable, with actor, action and timestamp, and immutable).
-- **Status:** Proposed (to be confirmed by the team)
+- **Status:** Accepted (by the project owner, 2026-11-16)
 
 ### D-12 - Developers and testers swapped for some stories
 - **Logged:** 2026-11-06
@@ -162,17 +162,17 @@ These are not deviations by themselves, because the SAD left them open. Each row
 | Database | PostgreSQL 16, run in Docker Compose for development; the CI test job uses a `postgres:16` service. Django connects through the `DB_*` variables. | Applied |
 | Test email server | MailHog, as named in the STP | Applied |
 | Background jobs (reminders, queued e-mail) | `send_due_reminders` runs once per minute. It queues reminders with a 24-hour lead time for every assignee, or the owner if unassigned; failures are retried for up to 120 attempts (up to two hours), then marked failed. No Celery. | Applied |
-| Attachment scanning | A scanner stub behind an interface (extension and size checks, EICAR test file); no real antivirus integration (see D-05) | Proposed |
-| REST/JSON endpoints | Not built; server-rendered Django views only | Proposed |
+| Attachment scanning | A scanner stub behind an interface (extension and size checks, EICAR test file); no real antivirus integration (see D-05) | Accepted (project owner, 2026-11-16) |
+| REST/JSON endpoints | Not built; server-rendered Django views only | Accepted (project owner, 2026-11-16) |
 | Who can recover a soft-deleted task | The task owner | Applied |
 | Who can assign tasks | The Project Manager role, to any active user (enforced in `TaskService`) | Applied |
-| Who can change collaborator permissions | The task owner (per TM-F-030 and TM-F-032) | Proposed |
+| Who can change collaborator permissions | The task owner (per TM-F-030 and TM-F-032) | Accepted (project owner, 2026-11-16) |
 | Task status values | `todo`, `in_progress`, and `done`, as agreed by Dev A and Dev B and recorded in `docs/schema.md` | Applied |
-| Password complexity policy (TM-F-001) | Django's four default validators apply to registration, reset and change: minimum length 8, not a common password, not entirely numeric, not too similar to the user's details. The seed password is set directly and bypasses them. | Proposed |
+| Password complexity policy (TM-F-001) | Three of Django's default validators apply to registration, reset and change (not a common password, not entirely numeric, not too similar to the user's details), plus a custom `DatabasePasswordLengthValidator` that enforces the admin-configurable `SystemConfig.password_min_length` (default 8). The seed password is set directly and bypasses them. | Accepted (project owner, 2026-11-16) |
 | Supported browser matrix | To be defined before UI testing | Open |
-| Monitoring, backup and at-rest encryption | Not implemented in the course build; deployment-level controls (see D-04) | Proposed |
-| Rate limiting for login and file upload | Not implemented in application code (a reverse-proxy concern). Account lockout (TM-F-003) and the 10 MB limit (TM-F-022) still apply | Proposed |
-| Whether "projects" need their own entity | No Projects entity is built (see D-03) | Proposed |
+| Monitoring, backup and at-rest encryption | Not implemented in the course build; deployment-level controls (see D-04) | Accepted (project owner, 2026-11-16) |
+| Rate limiting for login and file upload | Not implemented in application code (a reverse-proxy concern). Account lockout (TM-F-003) and the 10 MB limit (TM-F-022) still apply | Accepted (project owner, 2026-11-16) |
+| Whether "projects" need their own entity | No Projects entity is built (see D-03) | Accepted (project owner, 2026-11-16) |
 
 ---
 
