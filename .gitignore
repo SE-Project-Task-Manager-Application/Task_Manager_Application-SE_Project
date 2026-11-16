@@ -1,1 +1,8 @@
 .env
+.venv/
+__pycache__/
+*.py[cod]
+db.sqlite3
+.DS_Store
+# Uploaded files (profile pictures)
+media/

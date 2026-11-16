@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+  <h1>Dashboard</h1>
+
+  <form method="get" action="{% url 'dash:index' %}" class="date-filter">
+    <fieldset class="filter-bar">
+      <legend>Date range (by due date)</legend>
+      <div class="filter-field">
+      <label for="id_start">From</label>
+      <input type="date" id="id_start" name="start" value="{% if start %}{{ start|date:'Y-m-d' }}{% endif %}">
+      </div>
+      <div class="filter-field">
+      <label for="id_end">To</label>
+      <input type="date" id="id_end" name="end" value="{% if end %}{{ end|date:'Y-m-d' }}{% endif %}">
+      </div>
+      <button type="submit" class="button">Apply</button>
+      {% if start or end %}<a href="{% url 'dash:index' %}">Clear</a>{% endif %}
+    </fieldset>
+  </form>
+
+  <dl class="summary-cards">
+    <div class="card"><dt>Open</dt><dd>{{ counts.open }}</dd></div>
+    <div class="card"><dt>Overdue</dt><dd>{{ counts.overdue }}</dd></div>
+    <div class="card"><dt>Completed</dt><dd>{{ counts.completed }}</dd></div>
+  </dl>
+
+  <p>
+    <a class="button-link" href="{% url 'dash:export_csv' %}{% if start or end %}?{% if start %}start={{ start|date:'Y-m-d' }}{% endif %}{% if start and end %}&amp;{% endif %}{% if end %}end={{ end|date:'Y-m-d' }}{% endif %}{% endif %}">Export CSV</a>
+  </p>
+
+  {% if tasks %}
+    <div class="table-wrap">
+      <table class="responsive-table" role="table">
+        <caption class="visually-hidden">Tasks in this summary</caption>
+        <thead role="rowgroup">
+          <tr role="row">
+            <th scope="col" role="columnheader">Title</th>
+            <th scope="col" role="columnheader">Status</th>
+            <th scope="col" role="columnheader">Priority</th>
+            <th scope="col" role="columnheader">Due</th>
+            <th scope="col" role="columnheader">Assigned to</th>
+            <th scope="col" role="columnheader">Labels</th>
+          </tr>
+        </thead>
+        <tbody role="rowgroup">
+          {% for task in tasks %}
+            <tr role="row">
+              <th scope="row" role="rowheader">{{ task.title }}</th>
+              <td data-label="Status" role="cell"><div class="cell-value">{{ task.get_status_display }}</div></td>
+              <td data-label="Priority" role="cell"><div class="cell-value">{{ task.get_priority_display }}</div></td>
+              <td data-label="Due" role="cell"><div class="cell-value">{% if task.due_date %}{{ task.due_date|date:"Y-m-d H:i" }}{% else %}&ndash;{% endif %}</div></td>
+              <td data-label="Assigned to" role="cell"><div class="cell-value">{% for person in task.assignees.all %}{{ person.email }}{% if not forloop.last %}, {% endif %}{% empty %}&ndash;{% endfor %}</div></td>
+              <td data-label="Labels" role="cell"><div class="cell-value">{% for label in task.labels.all %}<span class="chip">{{ label.name }}</span>{% empty %}&ndash;{% endfor %}</div></td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <p>No tasks in this range.</p>
+  {% endif %}
+{% endblock %}
